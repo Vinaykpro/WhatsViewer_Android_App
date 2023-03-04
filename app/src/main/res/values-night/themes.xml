@@ -1,0 +1,44 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.AppCompat" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">#1f2c34</item>
+        <item name="colorPrimaryVariant">#1f2c34</item>
+        <item name="colorOnPrimary">@color/purple_200</item>
+        <!-- Secondary brand color. -->
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="color" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+
+        <!-- Customize your theme here. -->
+        <item name="primary_color">#1f2c34</item>
+        <item name="secondary_color"> #1f2c34 </item>
+        <item name="background_color"> @color/black </item>
+        <item name="text_color">@color/white </item>
+        <item name="text_color_secondary"> @color/lightwhite </item>
+        <item name="text_color_thirdary"> @color/verylightwhite </item>
+        <item name="sender_msg_color">#005D4B</item>
+        <item name="reciever_msg_color">#1f2c34</item>
+        <item name="tab_text_color"> @color/white </item>
+        <item name="date_bg_color"> #1f2c34 </item>
+        <item name="mainactivity_bg_color"> #000 </item>
+        <item name="mainactivity_edittext_color">#1f2c34</item>
+        <item name="emojis_bg">#BFBFBF</item>
+        <item name="profile_bg">#0b141b</item>
+        <item name="profiletabs_bg">#121b22</item>
+        <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
+    </style>
+
+    <style name="Theme.AppCompat.WhiteAccent">
+        <item name="colorAccent">?attr/primary_color</item>
+    </style>
+
+    <style name="PrimaryBackground">
+        <item name="android:background">#1f2c34</item>
+    </style>
+
+    <style name="TextColor">
+        <item name="android:textColor">#fff</item>
+    </style>
+
+</resources>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/senderlayoutfull2"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#000000"
+    android:visibility="visible">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/sender_bg_layout2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="1dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="1dp"
+        android:background="@drawable/bg_sender"
+        android:clickable="false"
+        android:focusable="false"
+        android:longClickable="false"
+        android:maxWidth="250dp"
+        android:minWidth="60dp"
+        android:minHeight="28dp"
+        android:paddingLeft="5dp"
+        android:paddingTop="2dp"
+        android:paddingRight="5dp"
+        android:paddingBottom="2dp">
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardViewMediaContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="10dp"
+            android:src="@drawable/backgroud"
+            app:cardCornerRadius="11dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:src="@drawable/backgroud" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/recievedmessage2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="3dp"
+            android:autoLink="web|phone|email"
+            android:background="#00000000"
+            android:clickable="false"
+            android:focusable="false"
+            android:fontFamily="sans-serif"
+            android:inputType="textMultiLine|textNoSuggestions|textImeMultiLine"
+            android:linksClickable="false"
+            android:longClickable="false"
+            android:padding="2dp"
+            android:text=" Hi"
+            android:textColor="?attr/text_color"
+            android:textColorHighlight="#FFEB3B"
+            android:textSize="15sp"
+            android:visibility="visible"
+            app:layout_constraintEnd_toStartOf="@+id/recievedtime2"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/cardViewMediaContainer"
+            app:layout_constraintWidth_max="170dp" />
+
+        <TextView
+            android:id="@+id/recievedtime2"
+
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-11dp"
+            android:layout_marginEnd="3dp"
+            android:layout_marginRight="3dp"
+            android:layout_marginBottom="3dp"
+            android:background="#00000000"
+            android:clickable="false"
+            android:fontFamily="sans-serif-light"
+            android:gravity="end"
+            android:linksClickable="false"
+            android:longClickable="false"
+            android:text="7:53 PM"
+            android:textColor="?attr/text_color_secondary"
+            android:textSize="12sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/ticks2"
+            app:layout_constraintTop_toBottomOf="@+id/recievedmessage2" />
+
+        <ImageView
+            android:id="@+id/ticks2"
+
+            android:layout_width="12.5dp"
+            android:layout_height="12.5dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginRight="15dp"
+            android:background="#00000000"
+            app:layout_constraintBottom_toBottomOf="@+id/recievedtime2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/recievedtime2"
+            app:srcCompat="@drawable/blue_ticks" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</RelativeLayout>

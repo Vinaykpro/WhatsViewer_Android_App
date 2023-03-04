@@ -1,0 +1,45 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.AppCompat" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/purple_200</item>
+        <!-- Secondary brand color. -->
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="color" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+
+        <!-- Customize your theme here. -->
+        <item name="primary_color"> @color/purple_500 </item>
+        <item name="secondary_color"> @color/purple_700 </item>
+        <item name="background_color"> @color/white </item>
+        <item name="text_color"> @color/black </item>
+        <item name="text_color_secondary"> @color/lightblack </item>
+        <item name="text_color_thirdary"> @color/verylightblack </item>
+        <item name="sender_msg_color"> @color/purple_200 </item>
+        <item name="reciever_msg_color"> @color/white </item>
+        <item name="tab_text_color"> @color/white </item>
+        <item name="date_bg_color"> #f7f7f5 </item>
+        <item name="mainactivity_bg_color"> #E5DCD3 </item>
+        <item name="mainactivity_edittext_color">@color/white</item>
+        <item name="emojis_bg">#353535</item>
+        <item name="profile_bg">#f7f8fa</item>
+        <item name="profiletabs_bg">#fff</item>
+        <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
+    </style>
+
+    <style name="Theme.AppCompat.WhiteAccent">
+        <item name="colorAccent">?attr/primary_color</item>
+    </style>
+
+    <style name="PrimaryBackground">
+        <item name="android:background">@color/purple_500</item>
+    </style>
+
+    <style name="TextColor">
+        <item name="android:textColor">#000</item>
+    </style>
+
+
+</resources>

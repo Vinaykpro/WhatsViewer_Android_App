@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="dark_mode">
+
+        <attr name="primary_color" format="color" />
+        <attr name="secondary_color" format="color" />
+        <attr name="text_color" format="color" />
+        <attr name="text_color_secondary" format="color" />
+        <attr name="text_color_thirdary" format="color" />
+
+        <attr name="background_color" format="color" />
+        <attr name="sender_msg_color" format="color" />
+        <attr name="tab_text_color" format="color" />
+        <attr name="reciever_msg_color" format="color" />
+        <attr name="date_bg_color" format="color" />
+        <attr name="mainactivity_bg_color" format="color" />
+        <attr name="mainactivity_edittext_color" format="color" />
+        <attr name="emojis_bg" format="color" />
+        <attr name="profiletabs_bg" format="color" />
+        <attr name="profile_bg" format="color" />
+    </declare-styleable>
+
+    <declare-styleable name="ImFlexboxLayout">
+            <attr name="viewPartMain" format="reference"/>
+            <attr name="viewPartSlave" format="reference"/>
+            <attr name="viewPartImage" format="reference"/>
+            <attr name="viewPartAudio" format="reference"/>
+            <attr name="viewPartDocument" format="reference"/>
+    </declare-styleable>
+
+
+</resources>

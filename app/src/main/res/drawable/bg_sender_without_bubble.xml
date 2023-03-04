@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:right="9dp">
+
+        <shape android:shape="rectangle" >
+
+            <solid android:color="?attr/sender_msg_color" />
+
+            <corners android:radius="11dp" />
+
+        </shape>
+
+    </item>
+
+</layer-list>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/viewcontact"
+        android:title="View contact"></item>
+
+    <item
+        android:id="@+id/swapusers"
+        android:title="Swap Users">
+    </item>
+
+    <item
+        android:id="@+id/search"
+        android:title="Search"></item>
+
+    <item
+        android:id="@+id/gotofirstmessage"
+        android:title="Go To First Message"></item>
+
+    <item
+        android:id="@+id/clearchat"
+        android:title="Clear chat"></item>
+
+</menu>
