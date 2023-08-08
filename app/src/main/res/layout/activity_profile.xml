@@ -5,6 +5,7 @@
     android:id="@+id/scrollviewprofile"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/profile_bg"
     android:scrollbarSize="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout

@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
@@ -20,16 +19,22 @@
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/document_title_bg.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/documents_dark.xml" value="0.3651041666666667" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/documents_light.xml" value="0.3651041666666667" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/download_round.xml" value="0.33" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/download_white.xml" value="0.30092592592592593" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/emoji_dark.xml" value="0.3651041666666667" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/emoji_light.xml" value="0.3651041666666667" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_baseline_swap_horizontal_circle_24_inactive.xml" value="0.35648148148148145" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_download_roundcircle.xml" value="0.30092592592592593" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_download_white.xml" value="0.33" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_file_icon.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_headset_white.xml" value="0.3651041666666667" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_lightwhite_play.xml" value="0.3594871794871795" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_outline_arrow_circle_down_24.xml" value="0.30092592592592593" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_pause.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_pause_round.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_pause_round_white.xml" value="0.3651041666666667" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_play.xml" value="0.3594871794871795" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ic_round_arrow_circle_down_24.xml" value="0.30092592592592593" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ripple.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ripple_dark.xml" value="0.3594871794871795" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/drawable/ripple_rounded_corners.xml" value="0.3594871794871795" />
@@ -50,7 +55,9 @@
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/fragment_media_image_viewer.xml" value="0.3489583333333333" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/fragment_media_video_viewer.xml" value="0.3489583333333333" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/fragment_status.xml" value="0.3489583333333333" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/new_reciever_media_message_bg.xml" value="0.25" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/new_reciever_message_bg.xml" value="0.5707070707070707" />
+        <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/new_sender_media_message_bg.xml" value="0.3489583333333333" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/new_sender_message_bg.xml" value="0.5124223602484472" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/note_middle.xml" value="0.3489583333333333" />
         <entry key="..\:/WhatsViewerViewExportedChats/app/src/main/res/layout/profilebar.xml" value="0.3489583333333333" />
@@ -67,7 +74,7 @@
       </map>
     </option>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="Android Studio default JDK" project-jdk-type="JavaSDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_17" project-jdk-name="jbr-17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>
   <component name="ProjectType">

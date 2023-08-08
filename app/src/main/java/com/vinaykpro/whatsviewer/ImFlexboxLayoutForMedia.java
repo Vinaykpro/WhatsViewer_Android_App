@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-public class ImFlexboxLayout extends RelativeLayout {
+public class ImFlexboxLayoutForMedia extends RelativeLayout {
     private TextView viewPartMain;
     private View viewPartSlave;
     private View viewPartImage;
@@ -34,11 +34,11 @@ public class ImFlexboxLayout extends RelativeLayout {
     private int viewPartAudioWidth;
     private int viewPartAudioHeight;
 
-    public ImFlexboxLayout(Context context) {
+    public ImFlexboxLayoutForMedia(Context context) {
         super(context);
     }
 
-    public ImFlexboxLayout(Context context, AttributeSet attrs) {
+    public ImFlexboxLayoutForMedia(Context context, AttributeSet attrs) {
         super(context, attrs);
         a = context.obtainStyledAttributes(attrs, R.styleable.ImFlexboxLayout, 0, 0);
     }
@@ -97,7 +97,7 @@ public class ImFlexboxLayout extends RelativeLayout {
         widthSize = getPaddingLeft() + getPaddingRight() + 2; //+2 normal
         heightSize = getPaddingTop() + getPaddingBottom();
 
-        if(viewPartImageWidth>1) {
+        if(viewPartImageWidth>1 && viewPartImage != null) {
         if (viewPartMainLineCount > 1 && !(viewPartMainLastLineWitdh + viewPartSlaveWidth >= viewPartMain.getMeasuredWidth())) {
            widthSize += viewPartImageWidth;
             heightSize += viewPartMainHeight;
@@ -159,11 +159,13 @@ public class ImFlexboxLayout extends RelativeLayout {
                     viewPartDocument.getHeight() + getPaddingTop() + viewPartDocument.getBottom());
         }
 
-        viewPartImage.layout(
-                getPaddingLeft()>0?(getPaddingStart()+3)+getPaddingTop():getPaddingTop(),
-                getPaddingTop(),
-                viewPartImage.getWidth() - getPaddingTop(),
-                viewPartImage.getHeight() + getPaddingTop());
+        if(viewPartImage != null) {
+            viewPartImage.layout(
+                    getPaddingLeft() > 0 ? (getPaddingStart() + 3) + getPaddingTop() : getPaddingTop(),
+                    getPaddingTop(),
+                    viewPartImage.getWidth() - getPaddingTop(),
+                    viewPartImage.getHeight() + getPaddingTop());
+        }
 
         viewPartMain.layout(
                 getPaddingLeft(),

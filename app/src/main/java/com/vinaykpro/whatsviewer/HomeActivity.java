@@ -55,10 +55,14 @@ import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.OnUserEarnedRewardListener;
 import com.google.android.gms.ads.initialization.InitializationStatus;
 import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardItem;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 
@@ -149,6 +153,7 @@ public class HomeActivity extends AppCompatActivity {
     FragmentManager fm;
     AdView mAdView;
     private InterstitialAd mInterstitialAd;
+    private RewardedAd mRewardAd;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -348,11 +353,11 @@ public class HomeActivity extends AppCompatActivity {
                 for (Uri u : uriList) {
                     filenames.add(getFileName(u));
                 }
-                for (int i = 0; i < uriList.size(); i++) {
+                /*for (int i = 0; i < uriList.size(); i++) {
                     Uri u = uriList.get(i);
                     String fileName = filenames.get(i);
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        ContentValues contentValues = new ContentValues();
+                    *//*if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                        *//**//*ContentValues contentValues = new ContentValues();
                         contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
                         //contentValues.put(MediaStore.MediaColumns.MIME_TYPE,);
 
@@ -380,6 +385,28 @@ public class HomeActivity extends AppCompatActivity {
 
                         } catch (Exception e) {
                             Toast.makeText(this, e + "", Toast.LENGTH_SHORT).show();
+                        }*//**//*
+
+                        ContentResolver contentResolver = getContentResolver();
+
+                        File directory = new File(getFilesDir() + "/" + tablename);
+                        if (!directory.exists()) {
+                            directory.mkdirs();
+                        }
+
+                        File file = new File(directory, fileName);
+                        try {
+                            FileOutputStream outputStream = new FileOutputStream(file);
+                            InputStream inputStream = contentResolver.openInputStream(u);
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                            }
+                            inputStream.close();
+                            outputStream.close();
+                        } catch (Exception e) {
+                            Toast.makeText(this, e + "", Toast.LENGTH_SHORT).show();
                         }
                     } else {
                         if (isWriteStoragePermissionGranted()) {
@@ -404,8 +431,8 @@ public class HomeActivity extends AppCompatActivity {
                         } else {
                             Toast.makeText(HomeActivity.this, "Please grant write enternal storage permission", Toast.LENGTH_SHORT).show();
                         }
-                    }
-            }
+                    }*//*
+            }*/
 
 
                 //Toast.makeText(this, tempToast, Toast.LENGTH_SHORT).show();
@@ -468,7 +495,7 @@ public class HomeActivity extends AppCompatActivity {
     public void loadInterstitialAd() {
         isinterstitialadfinished = false;
         AdRequest adRequest = new AdRequest.Builder().build();
-        InterstitialAd.load(this,"ca-app-pub-2813592783630195/9571135356", adRequest,
+        /*InterstitialAd.load(this,"ca-app-pub-2813592783630195/9571135356", adRequest,
                 new InterstitialAdLoadCallback() {
                     @Override
                     public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
@@ -550,7 +577,81 @@ public class HomeActivity extends AppCompatActivity {
                                 secondName = "";
                         }
                     }
+                });*/
+
+        RewardedAd.load(this, "ca-app-pub-2813592783630195/5974233711",
+                adRequest, new RewardedAdLoadCallback() {
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        // Handle the error.
+                        mRewardAd = null;
+                        mInterstitialAd = null;
+                        isinterstitialadfinished = true;
+                        if(ischataddedandreadytolaunch) {
+                            //ischataddedandreadytolaunch = false;
+                            Intent intent = new Intent(HomeActivity.this, MainActivity.class);
+                            intent.putExtra("fname", firstName);
+                            intent.putExtra("sname", secondName);
+                            intent.putExtra("zname", firstName);
+                            intent.putExtra("tablename", tablename);
+                            intent.putExtra("noad",true);
+                            startActivity(intent);
+                            firstName = "";
+                            secondName = "";
+                        }
+                    }
+
+                    @Override
+                    public void onAdLoaded(@NonNull RewardedAd ad) {
+                        mRewardAd = ad;
+                        mRewardAd.show(HomeActivity.this, new OnUserEarnedRewardListener() {
+                            @Override
+                            public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
+                            }
+                        });
+                        mRewardAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                            @Override
+                            public void onAdDismissedFullScreenContent() {
+                                super.onAdDismissedFullScreenContent();
+                                mInterstitialAd = null;
+                                isinterstitialadfinished = true;
+                                if(ischataddedandreadytolaunch) {
+                                    //ischataddedandreadytolaunch = false;
+                                    Intent intent = new Intent(HomeActivity.this, MainActivity.class);
+                                    intent.putExtra("fname", firstName);
+                                    intent.putExtra("sname", secondName);
+                                    intent.putExtra("zname", firstName);
+                                    intent.putExtra("tablename", tablename);
+                                    intent.putExtra("noad",true);
+                                    startActivity(intent);
+                                    firstName = "";
+                                    secondName = "";
+                                }
+                            }
+
+                            @Override
+                            public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
+                                super.onAdFailedToShowFullScreenContent(adError);
+                                mInterstitialAd = null;
+                                isinterstitialadfinished = true;
+                                if(ischataddedandreadytolaunch) {
+                                    //ischataddedandreadytolaunch = false;
+                                    Intent intent = new Intent(HomeActivity.this, MainActivity.class);
+                                    intent.putExtra("fname", firstName);
+                                    intent.putExtra("sname", secondName);
+                                    intent.putExtra("zname", firstName);
+                                    intent.putExtra("tablename", tablename);
+                                    intent.putExtra("noad",true);
+                                    startActivity(intent);
+                                    firstName = "";
+                                    secondName = "";
+                                }
+                            }
+                        });
+                    }
                 });
+
+
     }
 
     public void checkNopen(Uri uri) {

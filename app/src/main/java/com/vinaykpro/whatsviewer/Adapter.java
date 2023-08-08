@@ -2,14 +2,21 @@ package com.vinaykpro.whatsviewer;
 
 import static android.content.Context.MODE_PRIVATE;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.drawable.Drawable;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.media.ThumbnailUtils;
@@ -20,6 +27,7 @@ import android.os.Handler;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.provider.MediaStore;
+import android.provider.Telephony;
 import android.text.Html;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
@@ -43,11 +51,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -56,7 +67,9 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -84,7 +97,9 @@ public class Adapter extends RecyclerView.Adapter {
     ConstraintLayout chatmenulayout,editmessagelayout,searchlayout,maininputlayout,blacklayoutselectsender;
     LinearLayoutManager linearLayoutManager;
     List<SentViewHolder> selectedsitems = new ArrayList<>();
+    List<SentMediaViewHolder> selectedmediasitems = new ArrayList<>();
     List<RecievedViewHolder> selectedritems = new ArrayList<>();
+    List<RecievedMediaViewHolder> selectedmediaritems = new ArrayList<>();
     List<String> indexes = new ArrayList<>();
     List<String> searchedIndexes = new ArrayList<>();
     List<String> deletableitems = new ArrayList<>();
@@ -255,22 +270,38 @@ public class Adapter extends RecyclerView.Adapter {
     @Override
     public int getItemViewType(int position) {
         String name;
+        boolean isMedia = false;
         if(canigetName(messageList.get(position)))
+        {
             name = getName(messageList.get(position));
+            String message = getMessage(messageList.get(position));
+            if(message.contains("(file attached)"))
+            {
+                //isMedia = true;
+            }
+        }
         else
+        {
             return 2;
+        }
 
         if (name.equals(userName1)) {
-            return 0;
+            if(isMedia)
+                return 3;
+            return  0;
         }
         if(isthisagroup) {
             if (groupmemebernames.contains(name)) {
-                return 1;
+                if(isMedia)
+                    return 4;
+                return  1;
             } else {
                 return 2;
             }
         } else if(name.equals(userName2)) {
-            return 1;
+            if(isMedia)
+                return 4;
+            return  1;
         }
             return 2;
     }
@@ -380,19 +411,31 @@ public class Adapter extends RecyclerView.Adapter {
                         selectedsitems.get(i).isselected = false;
                         selectedsitems.get(i).fullbackgroundlayout.setForeground(null);
                     }
+                    for(int i=0;i<selectedmediasitems.size();i++)
+                    {
+                        selectedmediasitems.get(i).isselected = false;
+                        selectedmediasitems.get(i).fullbackgroundlayout.setForeground(null);
+                    }
                     for(int i=0;i<selectedritems.size();i++) {
                         selectedritems.get(i).isselected = false;
                         selectedritems.get(i).fullbackgroundlayout.setForeground(null);
+                    }
+                    for(int i=0;i<selectedmediaritems.size();i++)
+                    {
+                        selectedmediaritems.get(i).isselected = false;
+                        selectedmediaritems.get(i).fullbackgroundlayout.setForeground(null);
                     }
                     selectionmode = false;
                     count = 0;
                     selectedsitems.clear();
                     selectedritems.clear();
+                    selectedmediasitems.clear();
+                    selectedmediaritems.clear();
                     indexes.clear();
                     triggeredposition = -1;
                     searchedword = "";
                     editmessagelayout.setVisibility(View.GONE);
-                    chatmenulayout.setVisibility(View.GONE);
+                    hideThisViewByAlpha(chatmenulayout);
                     searchlayout.setVisibility(View.GONE);
                 }
                 if(issearching) {
@@ -417,9 +460,17 @@ public class Adapter extends RecyclerView.Adapter {
                             return Integer.parseInt(s) - Integer.parseInt(t1);
                         }
                     });
-                    for(int i=0;i<indexes.size();i++) {
+                    int totalC = indexes.size();
+                    for(int i=0;i<totalC;i++) {
                         String ss = messageList.get(Integer.parseInt(indexes.get(i)));
-                        s += getMessage(ss)+"\n";
+                        if((i+1)>=totalC)
+                            s += getMessage(ss);
+                        else
+                            s += getMessage(ss)+"\n";
+                    }
+                    int x = (int)Math.floor(Math.random()*100);
+                    if(x<=75) {
+                        ((MainActivity) context).showInterstitialAd();
                     }
                     cliptext = ClipData.newPlainText("copied messages",s);
                     clipboard.setPrimaryClip(cliptext);
@@ -451,6 +502,10 @@ public class Adapter extends RecyclerView.Adapter {
                         count2++;
                         notifyItemRemoved(Integer.parseInt(indexes.get(i)) - count2 + 1);
                     }
+                    int x = (int)Math.floor(Math.random()*100);
+                    if(x<=75) {
+                        ((MainActivity) context).showInterstitialAd();
+                    }
                     if (count == 1)
                         Toast.makeText(context, "Message deleted", Toast.LENGTH_SHORT).show();
                     else
@@ -467,7 +522,7 @@ public class Adapter extends RecyclerView.Adapter {
             public void onClick(View view) {
                 if(count == 1) {
                     editmode = true;
-                    chatmenulayout.setVisibility(View.GONE);
+                    hideThisViewByAlpha(chatmenulayout);
                     editmessagelayout.setVisibility(View.VISIBLE);
                 }
             }
@@ -634,6 +689,12 @@ public class Adapter extends RecyclerView.Adapter {
         } else if(viewType == 2){
             view = layoutInflater.inflate(R.layout.note_middle, parent, false);
             return new NoteViewHolder(view);
+        }  else if(viewType == 3){
+            view = layoutInflater.inflate(R.layout.new_sender_media_message_bg, parent, false);
+            return new SentMediaViewHolder(view);
+        }  else if(viewType == 4){
+            view = layoutInflater.inflate(R.layout.new_reciever_media_message_bg, parent, false);
+            return new RecievedMediaViewHolder(view);
         } else {
             view = layoutInflater.inflate(R.layout.note_middle, parent, false);
             return new NoteViewHolder(view);
@@ -654,33 +715,33 @@ public class Adapter extends RecyclerView.Adapter {
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
 
-            String s = messageList.get(position);
-            String name = "";
-            String time = "";
-            String message = "";
+        String s = messageList.get(position);
+        String name = "";
+        String time = "";
+        String message = "";
 
-            if(canigetName(s)) {
-                name = getName(s);
-            }
-            if (canigetMessage(s)) {
-                message = getMessage(s);
-            }
-            if (canigetTime(s)) {
-                time = getTime(s);
-            }
+        if (canigetName(s)) {
+            name = getName(s);
+        }
+        if (canigetMessage(s)) {
+            message = getMessage(s);
+        }
+        if (canigetTime(s)) {
+            time = getTime(s);
+        }
 
-        if(getItemViewType(position) == 2) {
+        if (getItemViewType(position) == 2) {
             NoteViewHolder noteViewHolder = (NoteViewHolder) holder;
             noteViewHolder.note.setText(messageList.get(position));
-            if(messageList.get(position).contains("Messages and calls are end-to-end encrypted. No one outside of this chat") && position == 1 && !isNightMode) {
+            if (messageList.get(position).contains("Messages and calls are end-to-end encrypted. No one outside of this chat") && position == 1 && !isNightMode) {
                 noteViewHolder.note.setBackgroundResource(R.drawable.firstnotmessage_bg);
             } else {
                 noteViewHolder.note.setBackgroundResource(R.drawable.date_bg);
             }
-            if(isNightMode)
-                noteViewHolder.note.setTextColor(((MainActivity)context).getResources().getColor(R.color.lightwhite));
+            if (isNightMode)
+                noteViewHolder.note.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
             else
-                noteViewHolder.note.setTextColor(((MainActivity)context).getResources().getColor(R.color.verylightblack));
+                noteViewHolder.note.setTextColor(((MainActivity) context).getResources().getColor(R.color.verylightblack));
             return;
         }
 
@@ -689,70 +750,715 @@ public class Adapter extends RecyclerView.Adapter {
                 RelativeLayout.LayoutParams.WRAP_CONTENT
         );
 
-            if (name.equals(userName1)) {
-                SentViewHolder sentViewHolder = (SentViewHolder) holder;
-                sentViewHolder.sentmessage.setText(message);
-                sentViewHolder.senttime.setText(time);
-                int f = (int) Math.floor(Math.random() * 7);
+        if (getItemViewType(position) == 0) { // name.equals(userName1)
+            SentViewHolder sentViewHolder = (SentViewHolder) holder;
+            sentViewHolder.sentmessage.setText(message);
+            sentViewHolder.senttime.setText(time);
+
+
+            if (position != 0 && canigetName(messageList.get(position - 1))) {
+                if (!(Objects.requireNonNull(getName(messageList.get(position - 1)))).equals(this.userName1)) {
+                    params.setMargins(0, 8, 0, 0);
+                    sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                    sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
+                } else {
+                    params.setMargins(0, 0, 0, 0);
+                    sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                    sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender_without_bubble);
+                }
+            } else {
+                params.setMargins(0, 8, 0, 0);
+                sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
+            }
+            if (isNightMode) {
+                sentViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
+                sentViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+            } else {
+                sentViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
+                sentViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
+            }
+            if (triggeredposition == position) {
+                sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                ObjectAnimator anim = ObjectAnimator.ofInt(sentViewHolder.fullbackgroundlayout.getForeground(), "alpha", 255, 0);
+                anim.setDuration(1500).setStartDelay(100);
+                anim.start();
+            }
+
+            if (indexes.contains(position + "") || triggeredposition == position) {
+                if (!(triggeredposition == position)) {
+                    sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                }
+            } else {
+                sentViewHolder.fullbackgroundlayout.setForeground(null);
+            }
+
+            if (searchedIndexes.contains(String.valueOf(position))) {
+                String highlightedtext = "";
+                if (!isNightMode) {
+                    highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>";
+                } else {
+                    highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>";
+                }
+                String text = message.replaceAll("(?i)" + Pattern.quote(searchedword), highlightedtext);
+                sentViewHolder.sentmessage.setText(Html.fromHtml(text, 0));
+            }
+
+            sentViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
+                @Override
+                public void onClick(View view) {
+                    if (selectionmode) {
+                        if (sentViewHolder.isselected) {
+                            sentViewHolder.isselected = false;
+                            count--;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedsitems.remove(sentViewHolder);
+                            indexes.remove(sentViewHolder.getAdapterPosition() + "");
+                            sentViewHolder.fullbackgroundlayout.setForeground(null);
+                        } else {
+                            sentViewHolder.isselected = true;
+                            count++;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedsitems.add(sentViewHolder);
+                            indexes.add(sentViewHolder.getAdapterPosition() + "");
+                            sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                        }
+                    }
+
+                    if (count > 1) {
+                        editmode = false;
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+
+                    if (count == 0) {
+                        hideThisViewByAlpha(chatmenulayout);
+                        selectionmode = false;
+                    } else {
+                        if (issearching) {
+                            issearching = false;
+                            triggeredposition = -1;
+                            searchedIndexes.clear();
+                            maininputlayout.setVisibility(View.VISIBLE);
+                            searchlayout.setVisibility(View.GONE);
+                        }
+                        revealThisViewByAlpha(chatmenulayout);
+                    }
+                }
+            });
+
+            sentViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
+                @Override
+                public boolean onLongClick(View view) {
+
+                    if (!selectionmode) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                        } else {
+                            v.vibrate(30);
+                        }
+                        selectionmode = true;
+                    }
+                    if (sentViewHolder.isselected) {
+                        sentViewHolder.isselected = false;
+                        count--;
+                        selectedcount.setText(String.valueOf(count));
+                        selectedsitems.remove(sentViewHolder);
+                        indexes.remove(sentViewHolder.getAdapterPosition() + "");
+                        sentViewHolder.fullbackgroundlayout.setForeground(null);
+                    } else {
+                        sentViewHolder.isselected = true;
+                        count++;
+                        selectedcount.setText(String.valueOf(count));
+                        selectedsitems.add(sentViewHolder);
+                        indexes.add(sentViewHolder.getAdapterPosition() + "");
+                        sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                    }
+
+                    if (count > 1) {
+                        editmode = false;
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+
+                    if (count == 0) {
+                        hideThisViewByAlpha(chatmenulayout);
+                        selectionmode = false;
+                    } else {
+                        if (issearching) {
+                            issearching = false;
+                            triggeredposition = -1;
+                            searchedIndexes.clear();
+                            maininputlayout.setVisibility(View.VISIBLE);
+                            searchlayout.setVisibility(View.GONE);
+                        }
+                        revealThisViewByAlpha(chatmenulayout);
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+                    return true;
+                }
+            });
+
+        }
+        else if (getItemViewType(position) == 1) { //name.equals(userName2) || getItemViewType(position) == 1
+            RecievedViewHolder recievedViewHolder = (RecievedViewHolder) holder;
+            String recievername;
+            recievedViewHolder.recievedmessage.setText(message);
+            recievedViewHolder.recievedtime.setText(time);
+            if (isthisagroup) {
+                recievedViewHolder.recievername.setVisibility(View.VISIBLE);
+                recievedViewHolder.recievername.setText(getName(messageList.get(position)));
+                recievername = getName(messageList.get(position));
+                recievedViewHolder.recievername.setTextColor(Color.parseColor(colorList.get(groupmemebernames.indexOf(recievername))));
+            } else {
+                recievedViewHolder.recievername.setVisibility(View.GONE);
+                recievername = userName2;
+            }
+
+            if (position != 0 && canigetName(messageList.get(position - 1))) {
+                if (!(Objects.requireNonNull(getName(messageList.get(position - 1)))).equals(recievername)) {
+                    params.setMargins(0, 8, 0, 0);
+                    recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                    recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
+                } else {
+                    recievedViewHolder.recievername.setVisibility(View.GONE);
+                    params.setMargins(0, 0, 0, 0);
+                    recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                    recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever_without_bubble);
+                }
+            } else {
+                params.setMargins(0, 8, 0, 0);
+                recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
+            }
+            if (isNightMode) {
+                recievedViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
+                recievedViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+                //recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+            } else {
+                recievedViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
+                recievedViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
+                //recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
+            }
+
+            if (triggeredposition == position) {
+                recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                ObjectAnimator anim = ObjectAnimator.ofInt(recievedViewHolder.fullbackgroundlayout.getForeground(), "alpha", 255, 0);
+                anim.setDuration(1500).setStartDelay(100);
+                anim.start();
+            }
+
+            if (indexes.contains(position + "") || triggeredposition == position) {
+                if (!(triggeredposition == position)) {
+                    recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                }
+            } else {
+                recievedViewHolder.fullbackgroundlayout.setForeground(null);
+            }
+
+            if (searchedIndexes.contains(String.valueOf(position))) {
+                String highlightedtext = "";
+                if (!isNightMode) {
+                    highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>";
+                } else {
+                    highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>";
+                }
+                String text = message.replaceAll("(?i)" + Pattern.quote(searchedword), highlightedtext);
+                recievedViewHolder.recievedmessage.setText(Html.fromHtml(text, 0));
+            }
+
+            recievedViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
+                @Override
+                public void onClick(View view) {
+
+                    if (selectionmode) {
+                        if (recievedViewHolder.isselected) {
+                            recievedViewHolder.isselected = false;
+                            count--;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedritems.remove(recievedViewHolder);
+                            indexes.remove(recievedViewHolder.getAdapterPosition() + "");
+                            recievedViewHolder.fullbackgroundlayout.setForeground(null);
+                        } else {
+                            recievedViewHolder.isselected = true;
+                            count++;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedritems.add(recievedViewHolder);
+                            indexes.add(recievedViewHolder.getAdapterPosition() + "");
+                            recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                        }
+                        //copy.callOnClick();
+                    }
+
+                    if (count > 1) {
+                        editmode = false;
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+
+                    if (count == 0) {
+                        hideThisViewByAlpha(chatmenulayout);
+                        selectionmode = false;
+                    } else {
+                        if (issearching) {
+                            issearching = false;
+                            triggeredposition = -1;
+                            searchedIndexes.clear();
+                            maininputlayout.setVisibility(View.VISIBLE);
+                            searchlayout.setVisibility(View.GONE);
+                        }
+                        revealThisViewByAlpha(chatmenulayout);
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+                }
+            });
+
+            recievedViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
+                @RequiresApi(api = Build.VERSION_CODES.M)
+                @Override
+                public boolean onLongClick(View view) {
+
+                    if (!selectionmode) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                        } else {
+                            v.vibrate(30);
+                        }
+                        selectionmode = true;
+                    }
+                    if (recievedViewHolder.isselected) {
+                        recievedViewHolder.isselected = false;
+                        count--;
+                        selectedcount.setText(String.valueOf(count));
+                        selectedritems.remove(recievedViewHolder);
+                        indexes.remove(recievedViewHolder.getAdapterPosition() + "");
+                        recievedViewHolder.fullbackgroundlayout.setForeground(null);
+                    } else {
+                        recievedViewHolder.isselected = true;
+                        count++;
+                        selectedcount.setText(String.valueOf(count));
+                        selectedritems.add(recievedViewHolder);
+                        indexes.add(recievedViewHolder.getAdapterPosition() + "");
+                        recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                    }
+
+                    if (count > 1) {
+                        editmode = false;
+                        editmessagelayout.setVisibility(View.GONE);
+                    }
+
+                    if (count == 0) {
+                        hideThisViewByAlpha(chatmenulayout);
+                        selectionmode = false;
+                    } else {
+                        if (issearching) {
+                            issearching = false;
+                            triggeredposition = -1;
+                            searchedIndexes.clear();
+                            maininputlayout.setVisibility(View.VISIBLE);
+                            searchlayout.setVisibility(View.GONE);
+                        }
+                        editmessagelayout.setVisibility(View.GONE);
+                        revealThisViewByAlpha(chatmenulayout);
+                    }
+                    return true;
+                }
+            });
+
+        } else if (getItemViewType(position) == 3) { // name.equals(userName1)
+            SentMediaViewHolder sentMediaViewHolder = (SentMediaViewHolder) holder;
+            sentMediaViewHolder.sentmessage.setText(message);
+            sentMediaViewHolder.senttime.setText(time);
+
                 File file = new File("This file does not exist");
                 String fileName = "";
                 //f = 4;
                 //String[] paths = {"storage/emulated/0/Download/song.mp3","storage/emulated/0/Download/Testimg.jpg","storage/emulated/0/Download/Crop2.jpg","storage/emulated/0/Download/Crop1.jpg","storage/emulated/0/Vinay/Crop3.jpg","storage/emulated/0/Download/aditya.mp4","storage/emulated/0/Download/Video.mp4"};
                 //sentViewHolder.mainimage.setImageURI(Uri.fromFile(new File(paths[f])));
-                if (message.contains("(file attached)")) {
+                //sentViewHolder.sentmessage.setText((position+""));
+                sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+                sentMediaViewHolder.imagecontainer.setVisibility(View.VISIBLE);
 
+                    message = sentMediaViewHolder.sentmessage.getText().toString();
                     String text = "";
 
                     String[] parts = message.split("\\(file attached\\)");
-                    for(String ss : parts)
-                    {
-                        if(ss.contains("(file attached)"))
-                            ss = ss.replaceAll("(?=\\(file attached\\))","");
+                    for (String ss : parts) {
+                        if (ss.contains("(file attached)"))
+                            ss = ss.replaceAll("(?=\\(file attached\\))", "");
                         ss = ss.trim();
-                        if(!ss.isEmpty())
-                         text += ss+"\n";
-                        File newFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/WhatsViewer/chats/" + tablename + "/" + ss);
-                        if(newFile.exists())
-                        {
+                        if (!ss.isEmpty())
+                            text += ss + "\n";
+                        File newFile;
+                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+                            newFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/WhatsViewer/chats/" + tablename + "/" + ss);
+                        } else {
+                            newFile = new File(context.getFilesDir() + "/" + tablename + "/" + ss);
+                        }
+                        if (newFile.exists()) {
                             fileName = ss;
                             file = newFile;
                             break;
                         }
+
                     }
+                String path = file.getAbsolutePath();
+                boolean isImage, isVideo, isAudio;
+                isImage = isVideo = isAudio = false;
 
-                    if(file.exists()) {
-                        String path = file.getAbsolutePath();
+                if (path.contains("IMG-") || path.contains(".jpg") || path.contains(".png")) {
+                    isImage = true;
+                } else if (path.contains("VID-") || path.contains(".mp4") || path.contains(".mkv") || path.contains(".3gp") || path.contains(".mpeg") || path.contains(".m4a")) {
+                    isVideo = true;
+                } else if ((path.contains("AUD-") || path.contains(".mp3") || path.contains(".ogg") || path.contains(".opus"))) {
+                    isAudio = true;
+                } else {
+                    isImage = isVideo = isAudio = false;
+                }
 
-                        boolean isImage, isVideo, isAudio;
+                int calculatedHeight = maxheightinpx;
+                int calculatedWidth = maxwidthinpx;
+
+                    if (!file.exists()) { //!file.exists()
+                        if(isImage)
+                        {
+                            calculatedHeight = maxheightinpx;
+                            calculatedWidth = (int)(maxwidthinpx*0.7);
+
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+
+                            sentMediaViewHolder.playbutton.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.mainimage.setBackgroundResource(R.drawable.blur);
+                            sentMediaViewHolder.playbutton.setImageDrawable(AppCompatResources.getDrawable(context,R.drawable.ic_download_white));
+
+
+                        } else if(isVideo) {
+                            calculatedHeight = maxheightinpx;
+                            calculatedWidth = (int)(maxwidthinpx*0.7);
+                        } else if(isAudio) {
+                            calculatedHeight = sentMediaViewHolder.senderaudiolayout.getHeight();
+                            calculatedWidth = maxwidthinpx;
+                        } else {
+
+                        }
+                    } else {
+                        //String path = file.getAbsolutePath();
+
+                        //boolean isImage, isVideo, isAudio;
                         isImage = isVideo = isAudio = false;
 
                         if (path.contains("IMG-") || path.contains(".jpg") || path.contains(".png")) {
                             isImage = true;
-                            isVideo = isAudio = false;
-                            Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
-                           /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            //sentViewHolder.sentmessage.setText(("This is an image"));
+
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inJustDecodeBounds = true;
+                            BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+                            int imageHeight = options.outHeight;
+                            int imageWidth = options.outWidth;
+
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+                            ((SentMediaViewHolder) holder).imagecontainer.setVisibility(View.VISIBLE);
+                            //sentMediaViewHolder.mainimage.setBackgroundColor(context.getResources().getColor(R.color.white));
+                            sentMediaViewHolder.playbutton.setImageDrawable(AppCompatResources.getDrawable(context,R.drawable.ic_play));
+                            //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
+                            Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
+                            //Toast.makeText(context, file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+                            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
+                            } else {
+                                Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
+                            }*/
+
+
+                            if (imageHeight > imageWidth) {
+                                double heightpercentage = (imageHeight / (imageWidth * 0.01));
+                                double tempheight = (maxwidthinpx * 0.01) * (heightpercentage);
+                                if (tempheight > maxheightinpx) {
+                                    double tempheight2 = ((((maxwidthinpx * 0.9) * 0.01) * (100 + heightpercentage)));
+                                    if (tempheight2 >= maxheightinpx) {
+                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
+                                        calculatedHeight = maxheightinpx;
+                                    } else {
+                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
+                                        calculatedHeight = (int) tempheight2;
+                                    }
+                                    //calculatedHeight=tempheight;
+                                } else {
+                                    calculatedWidth = maxwidthinpx;
+                                    calculatedHeight = (int) tempheight;
+                                }
+                            } else {
+                                int widthpercentage = (int) (imageHeight / (imageWidth * 0.01));
+                                int minheight = (int) (maxheightinpx * 0.16);
+                                int tempheight = (int) (maxwidthinpx * 0.01) * (widthpercentage);
+                                if (tempheight > minheight && tempheight < maxheightinpx) {
+                                    calculatedHeight = tempheight;
+                                } else if (tempheight < minheight) {
+                                    calculatedHeight = (int) minheight;
+                                } else {
+                                    calculatedHeight = maxheightinpx;
+                                }
+                            }
+
+                            ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
+                            sentMediaViewHolder.imagecontainer.setLayoutParams(params1);
+
+                            File finalFile = file;
+                            String finalFileName = fileName;
+                            sentMediaViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    if(!selectionmode) {
+                                        Intent i = new Intent(((MainActivity) context), MediaViewerActivity.class);
+                                        ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), sentMediaViewHolder.mainimage, ViewCompat.getTransitionName(sentMediaViewHolder.mainimage));
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                            //Toast.makeText(context, finalFile.getAbsolutePath()+"", Toast.LENGTH_SHORT).show();
+                                            i.putExtra("path", finalFile.getAbsolutePath());
+                                        } else {
+                                            i.putExtra("path", finalFile.getAbsolutePath());
+                                        }
+
+
+                                        context.startActivity(i, options.toBundle());
+                                    } else {
+                                        sentMediaViewHolder.fullbackgroundlayout.performLongClick();
+                                    }
+                                }
+                            });
+                            sentMediaViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
+                                @Override
+                                public boolean onLongClick(View view) {
+                                    sentMediaViewHolder.fullbackgroundlayout.performLongClick();
+                                    return true;
+                                }
+                            });
+
+                            //isVideo = isAudio = false;
+                            //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
+                            /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                 file = new File(Environment.DIRECTORY_DOWNLOADS);
                             } else {
                                 file = new File(Environment.getExternalStorageDirectory() + "/WhatsViewer/chats/" + tablename + "/" + fileName);
                             }*/
-
                         } else if (path.contains("VID-") || path.contains(".mp4") || path.contains(".mkv") || path.contains(".3gp") || path.contains(".mpeg") || path.contains(".m4a")) {
-                            isImage = isAudio = false;
+                            //isImage = isAudio = false;
                             isVideo = true;
+                            //sentViewHolder.sentmessage.setText(("This is a Video"));
 
-                            sentViewHolder.playbutton.setVisibility(View.VISIBLE);
-                            sentViewHolder.svideotimelayout.setVisibility(View.VISIBLE);
+                            BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inJustDecodeBounds = true;
+                            BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+                            int imageHeight = options.outHeight;
+                            int imageWidth = options.outWidth;
+
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
+                            Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
+                            String duration = "";
+                            try {
+                                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                                retriever.setDataSource(file.getAbsolutePath());
+                                duration = "";
+                                int dur_in_mills = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                                duration = convertToMMSS(dur_in_mills + "");
+
+                                sentMediaViewHolder.svideotimetext.setText(duration);
+                                //sentViewHolder.mainimage.setImageBitmap(ThumbnailUtils.createVideoThumbnail(paths[f], MediaStore.Video.Thumbnails.MINI_KIND));
+                                //imageHeight = 300;
+                                //imageWidth = 400;
+                                imageHeight = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+                                imageWidth = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                                retriever.release();
+                            } catch (Exception e) {
+                            }
+
+                            if (imageHeight > imageWidth) {
+                                double heightpercentage = (imageHeight / (imageWidth * 0.01));
+                                double tempheight = (maxwidthinpx * 0.01) * (heightpercentage);
+                                if (tempheight > maxheightinpx) {
+                                    double tempheight2 = ((((maxwidthinpx * 0.9) * 0.01) * (100 + heightpercentage)));
+                                    if (tempheight2 >= maxheightinpx) {
+                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
+                                        calculatedHeight = maxheightinpx;
+                                    } else {
+                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
+                                        calculatedHeight = (int) tempheight2;
+                                    }
+                                    //calculatedHeight=tempheight;
+                                } else {
+                                    calculatedWidth = maxwidthinpx;
+                                    calculatedHeight = (int) tempheight;
+                                }
+                            } else {
+                                int widthpercentage = (int) (imageHeight / (imageWidth * 0.01));
+                                int minheight = (int) (maxheightinpx * 0.16);
+                                int tempheight = (int) (maxwidthinpx * 0.01) * (widthpercentage);
+                                if (tempheight > minheight && tempheight < maxheightinpx) {
+                                    calculatedHeight = tempheight;
+                                } else if (tempheight < minheight) {
+                                    calculatedHeight = (int) minheight;
+                                } else {
+                                    calculatedHeight = maxheightinpx;
+                                }
+                            }
+
+                            ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
+                            sentMediaViewHolder.imagecontainer.setLayoutParams(params1);
+
+                            File finalFile = file;
+                            sentMediaViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    Intent i = new Intent(((MainActivity) context), MediaViewerActivity.class);
+                                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), sentMediaViewHolder.mainimage, ViewCompat.getTransitionName(sentMediaViewHolder.mainimage));
+                                    i.putExtra("path", finalFile.getAbsolutePath());
+                                    context.startActivity(i, options.toBundle());
+                                }
+                            });
+                            sentMediaViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
+                                @Override
+                                public boolean onLongClick(View view) {
+                                    sentMediaViewHolder.fullbackgroundlayout.performLongClick();
+                                    return true;
+                                }
+                            });
+
+                            sentMediaViewHolder.playbutton.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.VISIBLE);
+
                         } else if (path.contains("AUD-") || path.contains(".mp3") || path.contains(".ogg") || path.contains(".opus")) {
                             isImage = isVideo = false;
+                            //sentViewHolder.sentmessage.setText(("This is an audio"));
                             isAudio = true;
+
+                            Toast.makeText(context, "This is an Audio", Toast.LENGTH_SHORT).show();
+
+                            calculatedHeight = sentMediaViewHolder.senderaudiolayout.getHeight();
+                            calculatedWidth = maxwidthinpx;
+                            sentMediaViewHolder.sentmessage.setVisibility(View.GONE);
+                            sentMediaViewHolder.mainimage.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+
+
+                            String audioduration = "0:00";
+                            try {
+                                MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                                mediaMetadataRetriever.setDataSource(path);
+                                int dur = Integer.valueOf(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                                if (currentAudioIndex != sentMediaViewHolder.getAdapterPosition())
+                                    sentMediaViewHolder.audioduration.setText(convertToMMSS(dur + ""));
+                                audioduration = convertToMMSS(dur + "");
+                            } catch (Exception e) {
+                                Toast.makeText(context, "Unable to get the duration of this audio file" + e.toString(), Toast.LENGTH_SHORT).show();
+                            }
+
+                            String finalAudioduration = audioduration;
+                            if (currentAudioIndex != sentMediaViewHolder.getAdapterPosition()) {
+                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                sentMediaViewHolder.audioduration.setText(finalAudioduration);
+                                sentMediaViewHolder.seekBar.setProgress(0);
+                            }
+                            sentMediaViewHolder.saudioplaybutton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    ((MainActivity) context).runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            Runnable audioRunnable = new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    if (audioPlayer != null && audioPlayer.isPlaying()) {
+                                                        if (currentAudioIndex == sentMediaViewHolder.getAdapterPosition()) {
+                                                            int progress = audioPlayer.getCurrentPosition();
+                                                            sentMediaViewHolder.seekBar.setProgress(progress);
+                                                            sentMediaViewHolder.audioduration.setText(convertToMMSS(progress + ""));
+                                                            myHandler.postDelayed(this, 500);
+                                                        }
+                                                    }
+                                                }
+                                            };
+                                            if (audioPlayer == null || currentAudioIndex != sentMediaViewHolder.getAdapterPosition()) {
+                                                if (audioPlayer != null) {
+                                                    audioPlayer.release();
+                                                    audioPlayer = null;
+                                                    myHandler.removeCallbacks(audioRunnable);
+                                                    sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                    notifyItemChanged(currentAudioIndex);
+                                                }
+                                                audioPlayer = MediaPlayer.create(context, Uri.fromFile(new File(path)));
+                                                audioPlayer.start();
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
+                                                myHandler.post(audioRunnable);
+                                                sentMediaViewHolder.seekBar.setMax(audioPlayer.getDuration());
+                                                currentAudioIndex = sentMediaViewHolder.getAdapterPosition();
+                                                audioPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                                                    @Override
+                                                    public void onCompletion(MediaPlayer mediaPlayer) {
+                                                        audioPlayer.release();
+                                                        audioPlayer = null;
+                                                        myHandler.removeCallbacks(audioRunnable);
+                                                        sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                        sentMediaViewHolder.audioduration.setText(finalAudioduration);
+                                                        sentMediaViewHolder.seekBar.setProgress(0);
+                                                        currentAudioIndex = -1;
+                                                    }
+                                                });
+                                            } else if (audioPlayer.isPlaying()) {
+                                                audioPlayer.pause();
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                myHandler.removeCallbacks(audioRunnable);
+                                            } else {
+                                                audioPlayer.start();
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
+                                                myHandler.removeCallbacks(audioRunnable);
+                                                myHandler.post(audioRunnable);
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+
+                            sentMediaViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                                @Override
+                                public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
+                                }
+
+                                @Override
+                                public void onStartTrackingTouch(SeekBar seekBar) {
+
+                                }
+
+                                @Override
+                                public void onStopTrackingTouch(SeekBar seekBar) {
+                                    if (audioPlayer != null)
+                                        audioPlayer.seekTo(seekBar.getProgress());
+                                }
+                            });
+
+
+
                         } else {
-                            isImage = isVideo = isAudio = false;
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.imagecontainer.setVisibility(View.GONE);
+                            ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                            sentMediaViewHolder.senderLayout.setLayoutParams(params1);
+                            //isImage = isVideo = isAudio = false;
                         }
 
-                        int calculatedHeight = maxheightinpx;
-                        int calculatedWidth = maxwidthinpx;
-
-                        if (isImage || isVideo) {
+                        /*if (isImage || isVideo) {
 
                             BitmapFactory.Options options = new BitmapFactory.Options();
                             options.inJustDecodeBounds = true;
@@ -761,19 +1467,19 @@ public class Adapter extends RecyclerView.Adapter {
                             int imageWidth = options.outWidth;
 
                             if (isImage) {
-                                sentViewHolder.svideotimelayout.setVisibility(View.GONE);
-                                sentViewHolder.playbutton.setVisibility(View.GONE);
-                                sentViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                                sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                                sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+                                sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
                                 //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    Glide.with(context).load(MediaImageViewerFragment.getImageContentUri(context, file)).fitCenter().into(sentViewHolder.mainimage);
+                                    Glide.with(context).load(MediaImageViewerFragment.getImageContentUri(context, file)).fitCenter().into(sentMediaViewHolder.mainimage);
                                 } else {
-                                    Glide.with(context).load(file).fitCenter().into(sentViewHolder.mainimage);
+                                    Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
                                 }
                             } else if (isVideo) {
-                                sentViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                                sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
                                 //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
-                                Glide.with(context).load(MediaVideoViewerFragment.getImageContentUri(context, file)).fitCenter().into(sentViewHolder.mainimage);
+                                Glide.with(context).load(MediaVideoViewerFragment.getImageContentUri(context, file)).fitCenter().into(sentMediaViewHolder.mainimage);
                                 String duration = "";
                                 try {
                                     MediaMetadataRetriever retriever = new MediaMetadataRetriever();
@@ -782,7 +1488,7 @@ public class Adapter extends RecyclerView.Adapter {
                                     int dur_in_mills = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
                                     duration = convertToMMSS(dur_in_mills + "");
 
-                                    sentViewHolder.svideotimetext.setText(duration);
+                                    sentMediaViewHolder.svideotimetext.setText(duration);
                                     //sentViewHolder.mainimage.setImageBitmap(ThumbnailUtils.createVideoThumbnail(paths[f], MediaStore.Video.Thumbnails.MINI_KIND));
                                     //imageHeight = 300;
                                     //imageWidth = 400;
@@ -825,32 +1531,32 @@ public class Adapter extends RecyclerView.Adapter {
 
 
                             File finalFile = file;
-                            sentViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
+                            sentMediaViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View view) {
                                     Intent i = new Intent(((MainActivity) context), MediaViewerActivity.class);
-                                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), sentViewHolder.mainimage, ViewCompat.getTransitionName(sentViewHolder.mainimage));
+                                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), sentMediaViewHolder.mainimage, ViewCompat.getTransitionName(sentMediaViewHolder.mainimage));
                                     i.putExtra("path", finalFile.getAbsolutePath());
                                     context.startActivity(i, options.toBundle());
                                 }
                             });
-                            sentViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
+                            sentMediaViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
                                 @Override
                                 public boolean onLongClick(View view) {
-                                    sentViewHolder.fullbackgroundlayout.performLongClick();
+                                    sentMediaViewHolder.fullbackgroundlayout.performLongClick();
                                     return true;
                                 }
                             });
 
-                        } else if (isAudio) {
+                        } else if (isAudio) if(isAudio) {
                             //Toast.makeText(context, fileName+" is a Audio", Toast.LENGTH_SHORT).show();
-                            calculatedHeight = sentViewHolder.senderaudiolayout.getHeight();
+                            calculatedHeight = sentMediaViewHolder.senderaudiolayout.getHeight();
                             calculatedWidth = maxwidthinpx;
-                            sentViewHolder.sentmessage.setVisibility(View.GONE);
-                            sentViewHolder.mainimage.setVisibility(View.GONE);
-                            sentViewHolder.senderaudiolayout.setVisibility(View.VISIBLE);
-                            sentViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentViewHolder.playbutton.setVisibility(View.GONE);
+                            sentMediaViewHolder.sentmessage.setVisibility(View.GONE);
+                            sentMediaViewHolder.mainimage.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
 
 
                             String audioduration = "0:00";
@@ -858,77 +1564,71 @@ public class Adapter extends RecyclerView.Adapter {
                                 MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
                                 mediaMetadataRetriever.setDataSource(path);
                                 int dur = Integer.valueOf(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-                                if(currentAudioIndex != sentViewHolder.getAdapterPosition())
-                                    sentViewHolder.audioduration.setText(convertToMMSS(dur+""));
-                                audioduration = convertToMMSS(dur+"");
+                                if (currentAudioIndex != sentMediaViewHolder.getAdapterPosition())
+                                    sentMediaViewHolder.audioduration.setText(convertToMMSS(dur + ""));
+                                audioduration = convertToMMSS(dur + "");
                             } catch (Exception e) {
-                                Toast.makeText(context, "Unable to get the duration of this audio file"+e.toString(), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(context, "Unable to get the duration of this audio file" + e.toString(), Toast.LENGTH_SHORT).show();
                             }
 
                             String finalAudioduration = audioduration;
-                            if(currentAudioIndex != sentViewHolder.getAdapterPosition())
-                            {
-                                sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
-                                sentViewHolder.audioduration.setText(finalAudioduration);
-                                sentViewHolder.seekBar.setProgress(0);
+                            if (currentAudioIndex != sentMediaViewHolder.getAdapterPosition()) {
+                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                sentMediaViewHolder.audioduration.setText(finalAudioduration);
+                                sentMediaViewHolder.seekBar.setProgress(0);
                             }
-                            sentViewHolder.saudioplaybutton.setOnClickListener(new View.OnClickListener() {
+                            sentMediaViewHolder.saudioplaybutton.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View view) {
-                                    ((MainActivity)context).runOnUiThread(new Runnable() {
+                                    ((MainActivity) context).runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
                                             Runnable audioRunnable = new Runnable() {
                                                 @Override
                                                 public void run() {
-                                                    if(audioPlayer!=null && audioPlayer.isPlaying())
-                                                    {
-                                                        if(currentAudioIndex == sentViewHolder.getAdapterPosition()) {
+                                                    if (audioPlayer != null && audioPlayer.isPlaying()) {
+                                                        if (currentAudioIndex == sentMediaViewHolder.getAdapterPosition()) {
                                                             int progress = audioPlayer.getCurrentPosition();
-                                                            sentViewHolder.seekBar.setProgress(progress);
-                                                            sentViewHolder.audioduration.setText(convertToMMSS(progress + ""));
+                                                            sentMediaViewHolder.seekBar.setProgress(progress);
+                                                            sentMediaViewHolder.audioduration.setText(convertToMMSS(progress + ""));
                                                             myHandler.postDelayed(this, 500);
                                                         }
                                                     }
                                                 }
                                             };
-                                            if(audioPlayer == null || currentAudioIndex != sentViewHolder.getAdapterPosition())
-                                            {
-                                                if(audioPlayer!=null)
-                                                {
+                                            if (audioPlayer == null || currentAudioIndex != sentMediaViewHolder.getAdapterPosition()) {
+                                                if (audioPlayer != null) {
                                                     audioPlayer.release();
                                                     audioPlayer = null;
                                                     myHandler.removeCallbacks(audioRunnable);
-                                                    sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                    sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
                                                     notifyItemChanged(currentAudioIndex);
                                                 }
                                                 audioPlayer = MediaPlayer.create(context, Uri.fromFile(new File(path)));
                                                 audioPlayer.start();
-                                                sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
                                                 myHandler.post(audioRunnable);
-                                                sentViewHolder.seekBar.setMax(audioPlayer.getDuration());
-                                                currentAudioIndex = sentViewHolder.getAdapterPosition();
+                                                sentMediaViewHolder.seekBar.setMax(audioPlayer.getDuration());
+                                                currentAudioIndex = sentMediaViewHolder.getAdapterPosition();
                                                 audioPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                                                     @Override
                                                     public void onCompletion(MediaPlayer mediaPlayer) {
                                                         audioPlayer.release();
                                                         audioPlayer = null;
                                                         myHandler.removeCallbacks(audioRunnable);
-                                                        sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
-                                                        sentViewHolder.audioduration.setText(finalAudioduration);
-                                                        sentViewHolder.seekBar.setProgress(0);
+                                                        sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                        sentMediaViewHolder.audioduration.setText(finalAudioduration);
+                                                        sentMediaViewHolder.seekBar.setProgress(0);
                                                         currentAudioIndex = -1;
                                                     }
                                                 });
-                                            }
-                                            else if(audioPlayer.isPlaying())
-                                            {
+                                            } else if (audioPlayer.isPlaying()) {
                                                 audioPlayer.pause();
-                                                sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(),R.drawable.ic_lightwhite_play,null));
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
                                                 myHandler.removeCallbacks(audioRunnable);
                                             } else {
                                                 audioPlayer.start();
-                                                sentViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(),R.drawable.ic_pause_round,null));
+                                                sentMediaViewHolder.saudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
                                                 myHandler.removeCallbacks(audioRunnable);
                                                 myHandler.post(audioRunnable);
                                             }
@@ -937,7 +1637,7 @@ public class Adapter extends RecyclerView.Adapter {
                                 }
                             });
 
-                            sentViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                            sentMediaViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                                 @Override
                                 public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
 
@@ -950,23 +1650,21 @@ public class Adapter extends RecyclerView.Adapter {
 
                                 @Override
                                 public void onStopTrackingTouch(SeekBar seekBar) {
-                                    if(audioPlayer!=null) audioPlayer.seekTo(seekBar.getProgress());
+                                    if (audioPlayer != null)
+                                        audioPlayer.seekTo(seekBar.getProgress());
                                 }
                             });
 
                         } else {
                             //Toast.makeText(context, fileName+" just is a File", Toast.LENGTH_SHORT).show();
-                            sentViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentViewHolder.playbutton.setVisibility(View.GONE);
-                            sentViewHolder.senderaudiolayout.setVisibility(View.GONE);
-                            sentViewHolder.mainimage.setVisibility(View.GONE);
-                            sentViewHolder.documentlayout.setVisibility(View.VISIBLE);
-                            sentViewHolder.filename.setText(fileName);
-                            sentViewHolder.fileextension.setText(fileName.substring(fileName.lastIndexOf('.')+1));
-                        }
-
-                        ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
-                        sentViewHolder.imagecontainer.setLayoutParams(params1);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.mainimage.setVisibility(View.GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(View.VISIBLE);
+                            sentMediaViewHolder.filename.setText(fileName);
+                            sentMediaViewHolder.fileextension.setText(fileName.substring(fileName.lastIndexOf('.') + 1));
+                        } */
 
 
                         /*if (false) {
@@ -1069,13 +1767,14 @@ public class Adapter extends RecyclerView.Adapter {
                             }
                         });
                         //Toast.makeText(context, "Height: "+imageHeight+" \t Width: "+imageWidth+" base: "+baseHeight, Toast.LENGTH_SHORT).show();
-                *//*if(f==0)
+                */
+                        /*if(f==0)
                 { calculatedHeight = calculatedWidth = 0; }*//*
-                        *//*ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
+                         *//*ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
                         sentViewHolder.imagecontainer.setLayoutParams(params1);*//*
-                *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(maxwidthinpx,RelativeLayout.LayoutParams.WRAP_CONTENT);
+                         *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(maxwidthinpx,RelativeLayout.LayoutParams.WRAP_CONTENT);
                 sentViewHolder.documentlayout.setLayoutParams(params2);*//*
-                *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(ImFlexboxLayout.LayoutParams.WRAP_CONTENT, ImFlexboxLayout.LayoutParams.WRAP_CONTENT);
+                         *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(ImFlexboxLayout.LayoutParams.WRAP_CONTENT, ImFlexboxLayout.LayoutParams.WRAP_CONTENT);
                 sentViewHolder.sentmessage.setLayoutParams(params2);*//*
                         sentViewHolder.sentmessage.setMaxWidth(params1.width - 30);
                         if (f == 4 || true) {
@@ -1083,451 +1782,466 @@ public class Adapter extends RecyclerView.Adapter {
                         } else {
                             sentViewHolder.sentmessage.setVisibility(View.VISIBLE);
                         }
-                    }*/
+                    }
 
                     } else {
-                        //Toast.makeText(context, fileName+" does not exist", Toast.LENGTH_SHORT).show();
+                        //sentViewHolder.sentmessage.setText(("This is just a message (FNF)"));
+                        sentViewHolder.documentlayout.setVisibility(View.GONE);
+                        sentViewHolder.imagecontainer.setVisibility(View.GONE);
+                        sentViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                        sentViewHolder.playbutton.setVisibility(View.GONE);
+                        sentViewHolder.svideotimelayout.setVisibility(View.GONE);
+                        sentViewHolder.mainimage.setVisibility(View.GONE);
+
+                        ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        sentViewHolder.senderLayout.setLayoutParams(params1);
                     }
+
+
 
 
 
                 //sentViewHolder.sentmessage.setVisibility(View.GONE);
             } else {
+                    //sentViewHolder.sentmessage.setText(("This is just a message"));
+                    //sentViewHolder.sentmessage.setText(("false"));
                     sentViewHolder.documentlayout.setVisibility(View.GONE);
                     sentViewHolder.imagecontainer.setVisibility(View.GONE);
                     sentViewHolder.senderaudiolayout.setVisibility(View.GONE);
                     sentViewHolder.playbutton.setVisibility(View.GONE);
                     sentViewHolder.svideotimelayout.setVisibility(View.GONE);
+                    sentViewHolder.mainimage.setVisibility(View.GONE);
+                    ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                    sentViewHolder.senderLayout.setLayoutParams(params1);
                     //just a normal message :-)
-            }
-                if( position!=0 && canigetName(messageList.get(position - 1))) {
-                    if (!(Objects.requireNonNull(getName(messageList.get(position - 1)))).equals(this.userName1)) {
-                        params.setMargins(0,8,0,0);
-                        sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                        sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
+            }*/
+
+                    }
+
+                    if (position != 0 && canigetName(messageList.get(position - 1))) {
+                        if (!(Objects.requireNonNull(getName(messageList.get(position - 1)))).equals(this.userName1)) {
+                            params.setMargins(0, 8, 0, 0);
+                            sentMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                            sentMediaViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
+                        } else {
+                            params.setMargins(0, 0, 0, 0);
+                            sentMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                            sentMediaViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender_without_bubble);
+                        }
                     } else {
-                        params.setMargins(0,0,0,0);
-                        sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                        sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender_without_bubble);
+                        params.setMargins(0, 8, 0, 0);
+                        sentMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                        sentMediaViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
                     }
-                } else {
-                    params.setMargins(0,8,0,0);
-                    sentViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                    sentViewHolder.senderBubbleBg.setBackgroundResource(R.drawable.bg_sender);
-                }
-                if(isNightMode) {
-                    sentViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
-                    sentViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
-                } else {
-                    sentViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
-                    sentViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
-                }
-                if(triggeredposition==position) {
-                    sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
-                    ObjectAnimator anim = ObjectAnimator.ofInt(sentViewHolder.fullbackgroundlayout.getForeground(),"alpha",255,0);
-                    anim.setDuration(1500).setStartDelay(100);
-                    anim.start();
-                }
-
-                if(indexes.contains(position+"") || triggeredposition == position) {
-                    if(!(triggeredposition==position)) {
-                        sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                    if (isNightMode) {
+                        sentMediaViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
+                        sentMediaViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+                    } else {
+                        sentMediaViewHolder.sentmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
+                        sentMediaViewHolder.senttime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
                     }
-                } else {
-                    sentViewHolder.fullbackgroundlayout.setForeground(null);
-                }
+                    if (triggeredposition == position) {
+                        sentMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                        ObjectAnimator anim = ObjectAnimator.ofInt(sentMediaViewHolder.fullbackgroundlayout.getForeground(), "alpha", 255, 0);
+                        anim.setDuration(1500).setStartDelay(100);
+                        anim.start();
+                    }
 
-                if(searchedIndexes.contains(String.valueOf(position))) {
-                    String highlightedtext = "";
-                    if(!isNightMode)
-                    { highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>"; }
-                    else { highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>"; }
-                    String text = message.replaceAll("(?i)"+Pattern.quote(searchedword),highlightedtext);
-                    sentViewHolder.sentmessage.setText(Html.fromHtml(text,0));
-                }
+                    if (indexes.contains(position + "") || triggeredposition == position) {
+                        if (!(triggeredposition == position)) {
+                            sentMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                        }
+                    } else {
+                        sentMediaViewHolder.fullbackgroundlayout.setForeground(null);
+                    }
 
-                sentViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
-                    @RequiresApi(api = Build.VERSION_CODES.M)
-                    @Override
-                    public void onClick(View view) {
-                        if(selectionmode) {
-                            if(sentViewHolder.isselected) {
-                                sentViewHolder.isselected = false;
+                    if (searchedIndexes.contains(String.valueOf(position))) {
+                        String highlightedtext = "";
+                        if (!isNightMode) {
+                            highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>";
+                        } else {
+                            highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>";
+                        }
+                        String textu = message.replaceAll("(?i)" + Pattern.quote(searchedword), highlightedtext);
+                        sentMediaViewHolder.sentmessage.setText(Html.fromHtml(textu, 0));
+                    }
+
+                    sentMediaViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.M)
+                        @Override
+                        public void onClick(View view) {
+                            if (selectionmode) {
+                                if (sentMediaViewHolder.isselected) {
+                                    sentMediaViewHolder.isselected = false;
+                                    count--;
+                                    selectedcount.setText(String.valueOf(count));
+                                    selectedmediasitems.remove(sentMediaViewHolder);
+                                    indexes.remove(sentMediaViewHolder.getAdapterPosition() + "");
+                                    sentMediaViewHolder.fullbackgroundlayout.setForeground(null);
+                                } else {
+                                    sentMediaViewHolder.isselected = true;
+                                    count++;
+                                    selectedcount.setText(String.valueOf(count));
+                                    selectedmediasitems.add(sentMediaViewHolder);
+                                    indexes.add(sentMediaViewHolder.getAdapterPosition() + "");
+                                    sentMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                                }
+                            }
+
+                            if (count > 1) {
+                                editmode = false;
+                                editmessagelayout.setVisibility(View.GONE);
+                            }
+
+                            if (count == 0) {
+                                hideThisViewByAlpha(chatmenulayout);
+                                selectionmode = false;
+                            } else {
+                                if (issearching) {
+                                    issearching = false;
+                                    triggeredposition = -1;
+                                    searchedIndexes.clear();
+                                    maininputlayout.setVisibility(View.VISIBLE);
+                                    searchlayout.setVisibility(View.GONE);
+                                }
+                                revealThisViewByAlpha(chatmenulayout);
+                            }
+                        }
+                    });
+
+                    sentMediaViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
+                        @RequiresApi(api = Build.VERSION_CODES.M)
+                        @Override
+                        public boolean onLongClick(View view) {
+
+                            if (!selectionmode) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
+                                } else {
+                                    v.vibrate(30);
+                                }
+                                selectionmode = true;
+                            }
+                            if (sentMediaViewHolder.isselected) {
+                                sentMediaViewHolder.isselected = false;
                                 count--;
                                 selectedcount.setText(String.valueOf(count));
-                                selectedsitems.remove(sentViewHolder);
-                                indexes.remove(sentViewHolder.getAdapterPosition()+"");
-                                sentViewHolder.fullbackgroundlayout.setForeground(null);
+                                selectedmediasitems.remove(sentMediaViewHolder);
+                                indexes.remove(sentMediaViewHolder.getAdapterPosition() + "");
+                                sentMediaViewHolder.fullbackgroundlayout.setForeground(null);
                             } else {
-                                sentViewHolder.isselected = true;
+                                sentMediaViewHolder.isselected = true;
                                 count++;
                                 selectedcount.setText(String.valueOf(count));
-                                selectedsitems.add(sentViewHolder);
-                                indexes.add(sentViewHolder.getAdapterPosition()+"");
-                                sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                                selectedmediasitems.add(sentMediaViewHolder);
+                                indexes.add(sentMediaViewHolder.getAdapterPosition() + "");
+                                sentMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
                             }
-                        }
 
-                        if(count>1) {
-                            editmode = false;
-                            editmessagelayout.setVisibility(View.GONE);
-                        }
-
-                        if(count==0) {
-                            chatmenulayout.setVisibility(View.GONE);
-                            selectionmode = false;
-                        } else {
-                            if(issearching) {
-                                issearching = false;
-                                triggeredposition = -1;
-                                searchedIndexes.clear();
-                                maininputlayout.setVisibility(View.VISIBLE);
-                                searchlayout.setVisibility(View.GONE);
+                            if (count > 1) {
+                                editmode = false;
+                                editmessagelayout.setVisibility(View.GONE);
                             }
-                            chatmenulayout.setVisibility(View.VISIBLE);
-                        }
-                    }
-                });
 
-                sentViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
-                    @RequiresApi(api = Build.VERSION_CODES.M)
-                    @Override
-                    public boolean onLongClick(View view) {
-
-                        if (!selectionmode) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                v.vibrate(VibrationEffect.createOneShot(30,VibrationEffect.DEFAULT_AMPLITUDE));
+                            if (count == 0) {
+                                hideThisViewByAlpha(chatmenulayout);
+                                selectionmode = false;
                             } else {
-                                v.vibrate(30);
+                                if (issearching) {
+                                    issearching = false;
+                                    triggeredposition = -1;
+                                    searchedIndexes.clear();
+                                    maininputlayout.setVisibility(View.VISIBLE);
+                                    searchlayout.setVisibility(View.GONE);
+                                }
+                                revealThisViewByAlpha(chatmenulayout);
+                                editmessagelayout.setVisibility(View.GONE);
                             }
-                            selectionmode = true;
+                            return true;
                         }
-                        if(sentViewHolder.isselected) {
-                            sentViewHolder.isselected = false;
-                            count--;
-                            selectedcount.setText(String.valueOf(count));
-                            selectedsitems.remove(sentViewHolder);
-                            indexes.remove(sentViewHolder.getAdapterPosition()+"");
-                            sentViewHolder.fullbackgroundlayout.setForeground(null);
-                        } else {
-                            sentViewHolder.isselected = true;
-                            count++;
-                            selectedcount.setText(String.valueOf(count));
-                            selectedsitems.add(sentViewHolder);
-                            indexes.add(sentViewHolder.getAdapterPosition()+"");
-                            sentViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
-                        }
+                    });
 
-                        if(count>1) {
-                            editmode = false;
-                            editmessagelayout.setVisibility(View.GONE);
-                        }
 
-                        if(count==0) {
-                            chatmenulayout.setVisibility(View.GONE);
-                            selectionmode = false;
-                        } else {
-                            if(issearching) {
-                                issearching = false;
-                                triggeredposition = -1;
-                                searchedIndexes.clear();
-                                maininputlayout.setVisibility(View.VISIBLE);
-                                searchlayout.setVisibility(View.GONE);
-                            }
-                            chatmenulayout.setVisibility(View.VISIBLE);
-                            editmessagelayout.setVisibility(View.GONE);
-                        }
-                        return true;
+        } else if (getItemViewType(position) == 4) { //name.equals(userName2) || getItemViewType(position) == 1
+            RecievedMediaViewHolder recievedMediaViewHolder = (RecievedMediaViewHolder) holder;
+            String recievername;
+            recievedMediaViewHolder.recievedmessage.setText(message);
+            recievedMediaViewHolder.recievedtime.setText(time);
+            if (isthisagroup) {
+                recievedMediaViewHolder.recievername.setVisibility(View.VISIBLE);
+                recievedMediaViewHolder.recievername.setText(getName(messageList.get(position)));
+                recievername = getName(messageList.get(position));
+                recievedMediaViewHolder.recievername.setTextColor(Color.parseColor(colorList.get(groupmemebernames.indexOf(recievername))));
+            } else {
+                recievedMediaViewHolder.recievername.setVisibility(View.GONE);
+                recievername = userName2;
+            }
+
+            File file = new File("This file does not exist");
+            String fileName = "";
+
+            if (message.contains("(file attached)")) {
+
+                String text = "";
+
+                String[] parts = message.split("\\(file attached\\)");
+                for (String ss : parts) {
+                    if (ss.contains("(file attached)"))
+                        ss = ss.replaceAll("(?=\\(file attached\\))", "");
+                    ss = ss.trim();
+                    if (!ss.isEmpty())
+                        text += ss + "\n";
+                    File newFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/WhatsViewer/chats/" + tablename + "/" + ss);
+                    if (newFile.exists()) {
+                        fileName = ss;
+                        file = newFile;
+                        break;
                     }
-                });
-
-            } else if (getItemViewType(position) == 1) { //name.equals(userName2) || getItemViewType(position) == 1
-                RecievedViewHolder recievedViewHolder = (RecievedViewHolder) holder;
-                String recievername;
-                recievedViewHolder.recievedmessage.setText(message);
-                recievedViewHolder.recievedtime.setText(time);
-                if(isthisagroup) {
-                    recievedViewHolder.recievername.setVisibility(View.VISIBLE);
-                    recievedViewHolder.recievername.setText(getName(messageList.get(position)));
-                    recievername = getName(messageList.get(position));
-                    recievedViewHolder.recievername.setTextColor(Color.parseColor(colorList.get(groupmemebernames.indexOf(recievername))));
-                } else {
-                    recievedViewHolder.recievername.setVisibility(View.GONE);
-                    recievername = userName2;
                 }
 
-                File file = new File("This file does not exist");
-                String fileName = "";
+                if (file.exists()) {
+                    String path = file.getAbsolutePath();
 
-                if (message.contains("(file attached)")) {
+                    boolean isImage, isVideo, isAudio;
+                    isImage = isVideo = isAudio = false;
 
-                    String text = "";
-
-                    String[] parts = message.split("\\(file attached\\)");
-                    for(String ss : parts)
-                    {
-                        if(ss.contains("(file attached)"))
-                            ss = ss.replaceAll("(?=\\(file attached\\))","");
-                        ss = ss.trim();
-                        if(!ss.isEmpty())
-                            text += ss+"\n";
-                        File newFile = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/WhatsViewer/chats/" + tablename + "/" + ss);
-                        if(newFile.exists())
-                        {
-                            fileName = ss;
-                            file = newFile;
-                            break;
+                    if (path.contains("IMG-") || path.toLowerCase().contains(".jpg") || path.toLowerCase().contains(".png") || path.toLowerCase().contains(".jpeg")) {
+                        isImage = true;
+                        isVideo = isAudio = false;
+                        Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            file = new File(Environment.DIRECTORY_DOWNLOADS);
+                        } else {
+                            file = new File(Environment.getExternalStorageDirectory() + "/WhatsViewer/chats/" + tablename + "/" + fileName);
                         }
+
+                    } else if (path.contains("VID-") || path.contains(".mp4") || path.contains(".mkv") || path.contains(".3gp") || path.contains(".mpeg") || path.contains(".m4a")) {
+                        isImage = isAudio = false;
+                        isVideo = true;
+
+                        recievedMediaViewHolder.playbutton.setVisibility(View.VISIBLE);
+                        recievedMediaViewHolder.rvideotimelayout.setVisibility(View.VISIBLE);
+                    } else if (path.contains("AUD-") || path.contains(".mp3") || path.contains(".ogg") || path.contains(".opus")) {
+                        isImage = isVideo = false;
+                        isAudio = true;
+                    } else {
+                        isImage = isVideo = isAudio = false;
                     }
 
-                    if(file.exists()) {
-                        String path = file.getAbsolutePath();
+                    int calculatedHeight = maxheightinpx;
+                    int calculatedWidth = maxwidthinpx;
 
-                        boolean isImage, isVideo, isAudio;
-                        isImage = isVideo = isAudio = false;
+                    if (isImage || isVideo) {
 
-                        if (path.contains("IMG-") || path.contains(".jpg") || path.contains(".png")) {
-                            isImage = true;
-                            isVideo = isAudio = false;
-                            Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
-                           /* if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                file = new File(Environment.DIRECTORY_DOWNLOADS);
+                        BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(file.getAbsolutePath(), options);
+                        int imageHeight = options.outHeight;
+                        int imageWidth = options.outWidth;
+
+                        if (isImage) {
+                            recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
+                            recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
+                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                            //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                Glide.with(context).load(MediaImageViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedMediaViewHolder.mainimage);
                             } else {
-                                file = new File(Environment.getExternalStorageDirectory() + "/WhatsViewer/chats/" + tablename + "/" + fileName);
-                            }*/
+                                Glide.with(context).load(file).fitCenter().into(recievedMediaViewHolder.mainimage);
+                            }
+                        } else if (isVideo) {
+                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                            //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
+                            Glide.with(context).load(MediaVideoViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedMediaViewHolder.mainimage);
+                            String duration = "";
+                            try {
+                                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                                retriever.setDataSource(file.getAbsolutePath());
+                                duration = "";
+                                int dur_in_mills = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                                duration = convertToMMSS(dur_in_mills + "");
 
-                        } else if (path.contains("VID-") || path.contains(".mp4") || path.contains(".mkv") || path.contains(".3gp") || path.contains(".mpeg") || path.contains(".m4a")) {
-                            isImage = isAudio = false;
-                            isVideo = true;
-
-                            recievedViewHolder.playbutton.setVisibility(View.VISIBLE);
-                            recievedViewHolder.rvideotimelayout.setVisibility(View.VISIBLE);
-                        } else if (path.contains("AUD-") || path.contains(".mp3") || path.contains(".ogg") || path.contains(".opus")) {
-                            isImage = isVideo = false;
-                            isAudio = true;
-                        } else {
-                            isImage = isVideo = isAudio = false;
+                                recievedMediaViewHolder.rvideotimetext.setText(duration);
+                                //sentViewHolder.mainimage.setImageBitmap(ThumbnailUtils.createVideoThumbnail(paths[f], MediaStore.Video.Thumbnails.MINI_KIND));
+                                //imageHeight = 300;
+                                //imageWidth = 400;
+                                imageHeight = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+                                imageWidth = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                                retriever.release();
+                            } catch (Exception e) {
+                            }
                         }
 
-                        int calculatedHeight = maxheightinpx;
-                        int calculatedWidth = maxwidthinpx;
-
-                        if (isImage || isVideo) {
-
-                            BitmapFactory.Options options = new BitmapFactory.Options();
-                            options.inJustDecodeBounds = true;
-                            BitmapFactory.decodeFile(file.getAbsolutePath(), options);
-                            int imageHeight = options.outHeight;
-                            int imageWidth = options.outWidth;
-
-                            if (isImage) {
-                                recievedViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                                recievedViewHolder.playbutton.setVisibility(View.GONE);
-                                recievedViewHolder.recieverAudioLayout.setVisibility(View.GONE);
-                                //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    Glide.with(context).load(MediaImageViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedViewHolder.mainimage);
-                                } else {
-                                    Glide.with(context).load(file).fitCenter().into(recievedViewHolder.mainimage);
-                                }
-                            } else if (isVideo) {
-                                recievedViewHolder.recieverAudioLayout.setVisibility(View.GONE);
-                                //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
-                                Glide.with(context).load(MediaVideoViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedViewHolder.mainimage);
-                                String duration = "";
-                                try {
-                                    MediaMetadataRetriever retriever = new MediaMetadataRetriever();
-                                    retriever.setDataSource(file.getAbsolutePath());
-                                    duration = "";
-                                    int dur_in_mills = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-                                    duration = convertToMMSS(dur_in_mills + "");
-
-                                    recievedViewHolder.rvideotimetext.setText(duration);
-                                    //sentViewHolder.mainimage.setImageBitmap(ThumbnailUtils.createVideoThumbnail(paths[f], MediaStore.Video.Thumbnails.MINI_KIND));
-                                    //imageHeight = 300;
-                                    //imageWidth = 400;
-                                    imageHeight = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
-                                    imageWidth = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
-                                    retriever.release();
-                                } catch (Exception e) {
-                                }
-                            }
-
-                            if (imageHeight > imageWidth) {
-                                double heightpercentage = (imageHeight / (imageWidth * 0.01));
-                                double tempheight = (maxwidthinpx * 0.01) * (heightpercentage);
-                                if (tempheight > maxheightinpx) {
-                                    double tempheight2 = ((((maxwidthinpx * 0.9) * 0.01) * (100 + heightpercentage)));
-                                    if (tempheight2 >= maxheightinpx) {
-                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
-                                        calculatedHeight = maxheightinpx;
-                                    } else {
-                                        calculatedWidth = (int) (maxwidthinpx * 0.9);
-                                        calculatedHeight = (int) tempheight2;
-                                    }
-                                    //calculatedHeight=tempheight;
-                                } else {
-                                    calculatedWidth = maxwidthinpx;
-                                    calculatedHeight = (int) tempheight;
-                                }
-                            } else {
-                                int widthpercentage = (int) (imageHeight / (imageWidth * 0.01));
-                                int minheight = (int) (maxheightinpx * 0.16);
-                                int tempheight = (int) (maxwidthinpx * 0.01) * (widthpercentage);
-                                if (tempheight > minheight && tempheight < maxheightinpx) {
-                                    calculatedHeight = tempheight;
-                                } else if (tempheight < minheight) {
-                                    calculatedHeight = (int) minheight;
-                                } else {
+                        if (imageHeight > imageWidth) {
+                            double heightpercentage = (imageHeight / (imageWidth * 0.01));
+                            double tempheight = (maxwidthinpx * 0.01) * (heightpercentage);
+                            if (tempheight > maxheightinpx) {
+                                double tempheight2 = ((((maxwidthinpx * 0.9) * 0.01) * (100 + heightpercentage)));
+                                if (tempheight2 >= maxheightinpx) {
+                                    calculatedWidth = (int) (maxwidthinpx * 0.9);
                                     calculatedHeight = maxheightinpx;
+                                } else {
+                                    calculatedWidth = (int) (maxwidthinpx * 0.9);
+                                    calculatedHeight = (int) tempheight2;
                                 }
+                                //calculatedHeight=tempheight;
+                            } else {
+                                calculatedWidth = maxwidthinpx;
+                                calculatedHeight = (int) tempheight;
                             }
-
-
-                            File finalFile = file;
-                            recievedViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    Intent i = new Intent(((MainActivity) context), MediaViewerActivity.class);
-                                    ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), recievedViewHolder.mainimage, ViewCompat.getTransitionName(recievedViewHolder.mainimage));
-                                    i.putExtra("path", finalFile.getAbsolutePath());
-                                    context.startActivity(i, options.toBundle());
-                                }
-                            });
-                            recievedViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
-                                @Override
-                                public boolean onLongClick(View view) {
-                                    recievedViewHolder.fullbackgroundlayout.performLongClick();
-                                    return true;
-                                }
-                            });
-
-                        } else if (isAudio) {
-                            //Toast.makeText(context, fileName+" is a Audio", Toast.LENGTH_SHORT).show();
-                            calculatedHeight = recievedViewHolder.recieverAudioLayout.getHeight();
-                            calculatedWidth = maxwidthinpx;
-                            recievedViewHolder.recievedmessage.setVisibility(View.GONE);
-                            recievedViewHolder.mainimage.setVisibility(View.GONE);
-                            recievedViewHolder.recieverAudioLayout.setVisibility(View.VISIBLE);
-                            recievedViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                            recievedViewHolder.playbutton.setVisibility(View.GONE);
-
-
-                            String audioduration = "0:00";
-                            try {
-                                MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                                mediaMetadataRetriever.setDataSource(path);
-                                int dur = Integer.valueOf(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-                                if(currentAudioIndex != recievedViewHolder.getAdapterPosition())
-                                    recievedViewHolder.audioDuration.setText(convertToMMSS(dur+""));
-                                audioduration = convertToMMSS(dur+"");
-                            } catch (Exception e) {
-                                Toast.makeText(context, "Unable to get the duration of this audio file"+e.toString(), Toast.LENGTH_SHORT).show();
+                        } else {
+                            int widthpercentage = (int) (imageHeight / (imageWidth * 0.01));
+                            int minheight = (int) (maxheightinpx * 0.16);
+                            int tempheight = (int) (maxwidthinpx * 0.01) * (widthpercentage);
+                            if (tempheight > minheight && tempheight < maxheightinpx) {
+                                calculatedHeight = tempheight;
+                            } else if (tempheight < minheight) {
+                                calculatedHeight = (int) minheight;
+                            } else {
+                                calculatedHeight = maxheightinpx;
                             }
+                        }
 
-                            String finalAudioduration = audioduration;
-                            if(currentAudioIndex != recievedViewHolder.getAdapterPosition())
-                            {
-                                recievedViewHolder.audioDuration.setText(finalAudioduration);
-                                recievedViewHolder.seekBar.setProgress(0);
-                                recievedViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+
+                        File finalFile = file;
+                        recievedMediaViewHolder.imagecontainer.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                Intent i = new Intent(((MainActivity) context), MediaViewerActivity.class);
+                                ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(((MainActivity) context), recievedMediaViewHolder.mainimage, ViewCompat.getTransitionName(recievedMediaViewHolder.mainimage));
+                                i.putExtra("path", finalFile.getAbsolutePath());
+                                context.startActivity(i, options.toBundle());
                             }
-                            recievedViewHolder.raudioplaybutton.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    ((MainActivity)context).runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            Runnable audioRunnable = new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    if(audioPlayer!=null && audioPlayer.isPlaying())
-                                                    {
-                                                        if(currentAudioIndex == recievedViewHolder.getAdapterPosition()) {
-                                                            int progress = audioPlayer.getCurrentPosition();
-                                                            recievedViewHolder.seekBar.setProgress(progress);
-                                                            recievedViewHolder.audioDuration.setText(convertToMMSS(progress + ""));
-                                                            myHandler.postDelayed(this, 500);
-                                                        }
+                        });
+                        recievedMediaViewHolder.imagecontainer.setOnLongClickListener(new View.OnLongClickListener() {
+                            @Override
+                            public boolean onLongClick(View view) {
+                                recievedMediaViewHolder.fullbackgroundlayout.performLongClick();
+                                return true;
+                            }
+                        });
+
+                    } else if (isAudio) {
+                        //Toast.makeText(context, fileName+" is a Audio", Toast.LENGTH_SHORT).show();
+                        calculatedHeight = recievedMediaViewHolder.recieverAudioLayout.getHeight();
+                        calculatedWidth = maxwidthinpx;
+                        recievedMediaViewHolder.recievedmessage.setVisibility(View.GONE);
+                        recievedMediaViewHolder.mainimage.setVisibility(View.GONE);
+                        recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.VISIBLE);
+                        recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
+                        recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
+
+
+                        String audioduration = "0:00";
+                        try {
+                            MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                            mediaMetadataRetriever.setDataSource(path);
+                            int dur = Integer.valueOf(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                            if (currentAudioIndex != recievedMediaViewHolder.getAdapterPosition())
+                                recievedMediaViewHolder.audioDuration.setText(convertToMMSS(dur + ""));
+                            audioduration = convertToMMSS(dur + "");
+                        } catch (Exception e) {
+                            Toast.makeText(context, "Unable to get the duration of this audio file" + e.toString(), Toast.LENGTH_SHORT).show();
+                        }
+
+                        String finalAudioduration = audioduration;
+                        if (currentAudioIndex != recievedMediaViewHolder.getAdapterPosition()) {
+                            recievedMediaViewHolder.audioDuration.setText(finalAudioduration);
+                            recievedMediaViewHolder.seekBar.setProgress(0);
+                            recievedMediaViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                        }
+                        recievedMediaViewHolder.raudioplaybutton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                ((MainActivity) context).runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        Runnable audioRunnable = new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (audioPlayer != null && audioPlayer.isPlaying()) {
+                                                    if (currentAudioIndex == recievedMediaViewHolder.getAdapterPosition()) {
+                                                        int progress = audioPlayer.getCurrentPosition();
+                                                        recievedMediaViewHolder.seekBar.setProgress(progress);
+                                                        recievedMediaViewHolder.audioDuration.setText(convertToMMSS(progress + ""));
+                                                        myHandler.postDelayed(this, 500);
                                                     }
                                                 }
-                                            };
-                                            if(audioPlayer == null || currentAudioIndex != recievedViewHolder.getAdapterPosition())
-                                            {
-                                                if(audioPlayer!=null)
-                                                {
+                                            }
+                                        };
+                                        if (audioPlayer == null || currentAudioIndex != recievedMediaViewHolder.getAdapterPosition()) {
+                                            if (audioPlayer != null) {
+                                                audioPlayer.release();
+                                                audioPlayer = null;
+                                                myHandler.removeCallbacks(audioRunnable);
+                                                notifyItemChanged(currentAudioIndex);
+                                            }
+                                            audioPlayer = MediaPlayer.create(context, Uri.fromFile(new File(path)));
+                                            audioPlayer.start();
+                                            recievedMediaViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
+                                            myHandler.post(audioRunnable);
+                                            recievedMediaViewHolder.seekBar.setMax(audioPlayer.getDuration());
+                                            currentAudioIndex = recievedMediaViewHolder.getAdapterPosition();
+                                            audioPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                                                @Override
+                                                public void onCompletion(MediaPlayer mediaPlayer) {
                                                     audioPlayer.release();
                                                     audioPlayer = null;
                                                     myHandler.removeCallbacks(audioRunnable);
-                                                    notifyItemChanged(currentAudioIndex);
+                                                    recievedMediaViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                                    recievedMediaViewHolder.audioDuration.setText(finalAudioduration);
+                                                    recievedMediaViewHolder.seekBar.setProgress(0);
+                                                    currentAudioIndex = -1;
                                                 }
-                                                audioPlayer = MediaPlayer.create(context, Uri.fromFile(new File(path)));
-                                                audioPlayer.start();
-                                                recievedViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
-                                                myHandler.post(audioRunnable);
-                                                recievedViewHolder.seekBar.setMax(audioPlayer.getDuration());
-                                                currentAudioIndex = recievedViewHolder.getAdapterPosition();
-                                                audioPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                                                    @Override
-                                                    public void onCompletion(MediaPlayer mediaPlayer) {
-                                                        audioPlayer.release();
-                                                        audioPlayer = null;
-                                                        myHandler.removeCallbacks(audioRunnable);
-                                                        recievedViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
-                                                        recievedViewHolder.audioDuration.setText(finalAudioduration);
-                                                        recievedViewHolder.seekBar.setProgress(0);
-                                                        currentAudioIndex = -1;
-                                                    }
-                                                });
-                                            }
-                                            else if(audioPlayer.isPlaying())
-                                            {
-                                                audioPlayer.pause();
-                                                recievedViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(),R.drawable.ic_lightwhite_play,null));
-                                                myHandler.removeCallbacks(audioRunnable);
-                                            } else {
-                                                audioPlayer.start();
-                                                recievedViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(),R.drawable.ic_pause_round,null));
-                                                myHandler.removeCallbacks(audioRunnable);
-                                                myHandler.post(audioRunnable);
-                                            }
+                                            });
+                                        } else if (audioPlayer.isPlaying()) {
+                                            audioPlayer.pause();
+                                            recievedMediaViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_lightwhite_play, null));
+                                            myHandler.removeCallbacks(audioRunnable);
+                                        } else {
+                                            audioPlayer.start();
+                                            recievedMediaViewHolder.raudioplaybutton.setImageDrawable(ResourcesCompat.getDrawable(context.getResources(), R.drawable.ic_pause_round, null));
+                                            myHandler.removeCallbacks(audioRunnable);
+                                            myHandler.post(audioRunnable);
                                         }
-                                    });
-                                }
-                            });
+                                    }
+                                });
+                            }
+                        });
 
-                            recievedViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-                                @Override
-                                public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+                        recievedMediaViewHolder.seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                            @Override
+                            public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
 
-                                }
+                            }
 
-                                @Override
-                                public void onStartTrackingTouch(SeekBar seekBar) {
+                            @Override
+                            public void onStartTrackingTouch(SeekBar seekBar) {
 
-                                }
+                            }
 
-                                @Override
-                                public void onStopTrackingTouch(SeekBar seekBar) {
-                                    if(audioPlayer!=null) audioPlayer.seekTo(seekBar.getProgress());
-                                }
-                            });
+                            @Override
+                            public void onStopTrackingTouch(SeekBar seekBar) {
+                                if (audioPlayer != null)
+                                    audioPlayer.seekTo(seekBar.getProgress());
+                            }
+                        });
 
-                        } else {
-                            //Toast.makeText(context, fileName+" just is a File", Toast.LENGTH_SHORT).show();
-                            recievedViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                            recievedViewHolder.playbutton.setVisibility(View.GONE);
-                            recievedViewHolder.recieverAudioLayout.setVisibility(View.GONE);
-                            recievedViewHolder.mainimage.setVisibility(View.GONE);
-                            recievedViewHolder.documentLayout.setVisibility(View.VISIBLE);
-                            recievedViewHolder.fileName.setText(fileName);
-                            String extension = fileName.substring(fileName.lastIndexOf('.')+1);
-                            recievedViewHolder.fileExtension.setText(extension);
-                            recievedViewHolder.fileExtension.setText(extension);
-                        }
+                    } else {
+                        //Toast.makeText(context, fileName+" just is a File", Toast.LENGTH_SHORT).show();
+                        recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
+                        recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
+                        recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                        recievedMediaViewHolder.mainimage.setVisibility(View.GONE);
+                        recievedMediaViewHolder.documentLayout.setVisibility(View.VISIBLE);
+                        recievedMediaViewHolder.fileName.setText(fileName);
+                        String extension = fileName.substring(fileName.lastIndexOf('.') + 1);
+                        recievedMediaViewHolder.fileExtension.setText(extension);
+                        recievedMediaViewHolder.fileExtension.setText(extension);
+                    }
 
-                        ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
-                        recievedViewHolder.imagecontainer.setLayoutParams(params1);
+                    ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
+                    recievedMediaViewHolder.imagecontainer.setLayoutParams(params1);
 
 
                         /*if (false) {
@@ -1547,7 +2261,7 @@ public class Adapter extends RecyclerView.Adapter {
                                     int dur_in_mills = Integer.valueOf(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
                                     duration = convertToMMSS(dur_in_mills + "");
 
-                                    recievedViewHolder.rvideotimetext.setText(duration);
+                                    recievedMediaViewHolder.rvideotimetext.setText(duration);
                                     //sentViewHolder.mainimage.setImageBitmap(ThumbnailUtils.createVideoThumbnail(paths[f], MediaStore.Video.Thumbnails.MINI_KIND));
                                     //imageHeight = 300;
                                     //imageWidth = 400;
@@ -1556,20 +2270,20 @@ public class Adapter extends RecyclerView.Adapter {
                                     retriever.release();
                                 } catch (Exception e) {
                                 }
-                                recievedViewHolder.playbutton.setVisibility(View.VISIBLE);
-                                recievedViewHolder.rvideotimelayout.setVisibility(View.VISIBLE);
+                                recievedMediaViewHolder.playbutton.setVisibility(View.VISIBLE);
+                                recievedMediaViewHolder.rvideotimelayout.setVisibility(View.VISIBLE);
                                 isAudio = false;
                             } else if (f == 0) {
                                 isAudio = true;
                             } else {
                                 isAudio = false;
-                                recievedViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                                recievedViewHolder.playbutton.setVisibility(View.GONE);
+                                recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
+                                recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
                             }
                             int baseHeight = 0;
                             int baseWidth = 0;
                             // for both video and image
-                        *//*int calculatedHeight = maxheightinpx;
+                        /*int calculatedHeight = maxheightinpx;
                         int calculatedWidth = maxwidthinpx;
                         if (imageHeight > imageWidth) {
                             double heightpercentage = (imageHeight / (imageWidth * 0.01));
@@ -1632,11 +2346,11 @@ public class Adapter extends RecyclerView.Adapter {
                             //Toast.makeText(context, "Height: "+imageHeight+" \t Width: "+imageWidth+" base: "+baseHeight, Toast.LENGTH_SHORT).show();
                 *//*if(f==0)
                 { calculatedHeight = calculatedWidth = 0; }*//*
-                        *//*ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
+                     *//*ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
                         sentViewHolder.imagecontainer.setLayoutParams(params1);*//*
-                *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(maxwidthinpx,RelativeLayout.LayoutParams.WRAP_CONTENT);
+                     *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(maxwidthinpx,RelativeLayout.LayoutParams.WRAP_CONTENT);
                 sentViewHolder.documentlayout.setLayoutParams(params2);*//*
-                *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(ImFlexboxLayout.LayoutParams.WRAP_CONTENT, ImFlexboxLayout.LayoutParams.WRAP_CONTENT);
+                     *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(ImFlexboxLayout.LayoutParams.WRAP_CONTENT, ImFlexboxLayout.LayoutParams.WRAP_CONTENT);
                 sentViewHolder.sentmessage.setLayoutParams(params2);*//*
                             recievedViewHolder.recievedmessage.setMaxWidth(params1.width - 30);
                             *//*if (1 == 4 || true) {
@@ -1644,10 +2358,16 @@ public class Adapter extends RecyclerView.Adapter {
                             } else {
                                 recievedViewHolder.recievedmessage.setVisibility(View.VISIBLE);
                             }*//*
-                        }*/
+                        }
 
                     } else {
                         //Toast.makeText(context, fileName+" does not exist", Toast.LENGTH_SHORT).show();
+                        recievedViewHolder.documentLayout.setVisibility(View.GONE);
+                        recievedViewHolder.imagecontainer.setVisibility(View.GONE);
+                        recievedViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                        recievedViewHolder.playbutton.setVisibility(View.GONE);
+                        recievedViewHolder.rvideotimelayout.setVisibility(View.GONE);
+                        recievedViewHolder.documentLayout.setVisibility(View.GONE);
                     }
 
 
@@ -1663,10 +2383,7 @@ public class Adapter extends RecyclerView.Adapter {
                     //just a normal message :-)
                 }
 
-
-
-
-                /*if(false) {
+                if(false) {
                     int f = (int) Math.floor(Math.random() * 6);
                     //f = 3;
                     String[] paths = {"storage/emulated/0/Download/song.mp3", "storage/emulated/0/Download/Testimg.jpg", "storage/emulated/0/Download/Crop2.jpg", "storage/emulated/0/Download/Crop1.jpg", "storage/emulated/0/Download/Crop3.jpg", "storage/emulated/0/Download/aditya.mp4"};
@@ -1895,10 +2612,10 @@ public class Adapter extends RecyclerView.Adapter {
                     recievedViewHolder.recievedmessage.setVisibility(View.GONE);
                     //recievedViewHolder.recievedmessage.setText(paths[f].substring(paths[f].lastIndexOf("/")));
                     //Toast.makeText(context, "Height: "+imageHeight+" \t Width: "+imageWidth+" base: "+baseHeight, Toast.LENGTH_SHORT).show();
-                */
 
-                /*if(f==0)
-                { calculatedHeight = calculatedWidth = 0; }*//*
+
+                if(f==0)
+                { calculatedHeight = calculatedWidth = 0; }
                     ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(calculatedWidth, calculatedHeight);
                     recievedViewHolder.imagecontainer.setLayoutParams(params1);
                 *//*ImFlexboxLayout.LayoutParams params2 = new ImFlexboxLayout.LayoutParams(ImFlexboxLayout.LayoutParams.WRAP_CONTENT, ImFlexboxLayout.LayoutParams.WRAP_CONTENT);
@@ -1911,164 +2628,164 @@ public class Adapter extends RecyclerView.Adapter {
                     //recievedViewHolder.recievername.setVisibility(View.VISIBLE);
                     //recievedViewHolder.recievedtime.setVisibility(View.GONE);
                 }*/
+                }
 
 
-
-
-
-                if (position !=0 && canigetName(messageList.get(position - 1))) {
+                if (position != 0 && canigetName(messageList.get(position - 1))) {
                     if (!(Objects.requireNonNull(getName(messageList.get(position - 1)))).equals(recievername)) {
-                        params.setMargins(0,8,0,0);
-                        recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                        recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
+                        params.setMargins(0, 8, 0, 0);
+                        recievedMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                        recievedMediaViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
                     } else {
-                        recievedViewHolder.recievername.setVisibility(View.GONE);
-                        params.setMargins(0,0,0,0);
-                        recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                        recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever_without_bubble);
+                        recievedMediaViewHolder.recievername.setVisibility(View.GONE);
+                        params.setMargins(0, 0, 0, 0);
+                        recievedMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                        recievedMediaViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever_without_bubble);
                     }
                 } else {
-                    params.setMargins(0,8,0,0);
-                    recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
-                    recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
+                    params.setMargins(0, 8, 0, 0);
+                    recievedMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
+                    recievedMediaViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
                 }
-                if(isNightMode) {
-                    recievedViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
-                    recievedViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
-                    recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+                if (isNightMode) {
+                    recievedMediaViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.white));
+                    recievedMediaViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
+                    //recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightwhite));
                 } else {
-                    recievedViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
-                    recievedViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
-                    recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
+                    recievedMediaViewHolder.recievedmessage.setTextColor(((MainActivity) context).getResources().getColor(R.color.black));
+                    recievedMediaViewHolder.recievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
+                    //recievedViewHolder.rmediarecievedtime.setTextColor(((MainActivity) context).getResources().getColor(R.color.lightblack));
                 }
 
-                if(triggeredposition==position) {
-                    recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
-                    ObjectAnimator anim = ObjectAnimator.ofInt(recievedViewHolder.fullbackgroundlayout.getForeground(),"alpha",255,0);
+                if (triggeredposition == position) {
+                    recievedMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                    ObjectAnimator anim = ObjectAnimator.ofInt(recievedMediaViewHolder.fullbackgroundlayout.getForeground(), "alpha", 255, 0);
                     anim.setDuration(1500).setStartDelay(100);
                     anim.start();
                 }
 
-                if(indexes.contains(position+"") || triggeredposition == position) {
-                    if(!(triggeredposition==position)) {
-                        recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                if (indexes.contains(position + "") || triggeredposition == position) {
+                    if (!(triggeredposition == position)) {
+                        recievedMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
                     }
                 } else {
-                    recievedViewHolder.fullbackgroundlayout.setForeground(null);
+                    recievedMediaViewHolder.fullbackgroundlayout.setForeground(null);
                 }
 
-                if(searchedIndexes.contains(String.valueOf(position))) {
+                if (searchedIndexes.contains(String.valueOf(position))) {
                     String highlightedtext = "";
-                    if(!isNightMode)
-                    { highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>"; }
-                    else { highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>"; }
-                    String text = message.replaceAll("(?i)"+Pattern.quote(searchedword),highlightedtext);
-                    recievedViewHolder.recievedmessage.setText(Html.fromHtml(text,0));
+                    if (!isNightMode) {
+                        highlightedtext = "<span style='background-color:yellow'>" + searchedword + "</span>";
+                    } else {
+                        highlightedtext = "<span style='background-color:#ffffff; color:black'>" + searchedword + "</span>";
+                    }
+                    String textu = message.replaceAll("(?i)" + Pattern.quote(searchedword), highlightedtext);
+                    recievedMediaViewHolder.recievedmessage.setText(Html.fromHtml(textu, 0));
                 }
 
-                recievedViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
+                recievedMediaViewHolder.fullbackgroundlayout.setOnClickListener(new View.OnClickListener() {
                     @RequiresApi(api = Build.VERSION_CODES.M)
                     @Override
                     public void onClick(View view) {
 
-                        if(selectionmode) {
-                            if(recievedViewHolder.isselected) {
-                                recievedViewHolder.isselected = false;
+                        if (selectionmode) {
+                            if (recievedMediaViewHolder.isselected) {
+                                recievedMediaViewHolder.isselected = false;
                                 count--;
                                 selectedcount.setText(String.valueOf(count));
-                                selectedritems.remove(recievedViewHolder);
-                                indexes.remove(recievedViewHolder.getAdapterPosition()+"");
-                                recievedViewHolder.fullbackgroundlayout.setForeground(null);
+                                selectedmediaritems.remove(recievedMediaViewHolder);
+                                indexes.remove(recievedMediaViewHolder.getAdapterPosition() + "");
+                                recievedMediaViewHolder.fullbackgroundlayout.setForeground(null);
                             } else {
-                                recievedViewHolder.isselected = true;
+                                recievedMediaViewHolder.isselected = true;
                                 count++;
                                 selectedcount.setText(String.valueOf(count));
-                                selectedritems.add(recievedViewHolder);
-                                indexes.add(recievedViewHolder.getAdapterPosition()+"");
-                                recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                                selectedmediaritems.add(recievedMediaViewHolder);
+                                indexes.add(recievedMediaViewHolder.getAdapterPosition() + "");
+                                recievedMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
                             }
                             //copy.callOnClick();
                         }
 
-                        if(count>1) {
+                        if (count > 1) {
                             editmode = false;
                             editmessagelayout.setVisibility(View.GONE);
                         }
 
-                        if(count==0) {
-                            chatmenulayout.setVisibility(View.GONE);
+                        if (count == 0) {
+                            hideThisViewByAlpha(chatmenulayout);
                             selectionmode = false;
                         } else {
-                            if(issearching) {
+                            if (issearching) {
                                 issearching = false;
                                 triggeredposition = -1;
                                 searchedIndexes.clear();
                                 maininputlayout.setVisibility(View.VISIBLE);
                                 searchlayout.setVisibility(View.GONE);
                             }
-                            chatmenulayout.setVisibility(View.VISIBLE);
+                            revealThisViewByAlpha(chatmenulayout);
                             editmessagelayout.setVisibility(View.GONE);
                         }
                     }
                 });
 
-                recievedViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
+                recievedMediaViewHolder.fullbackgroundlayout.setOnLongClickListener(new View.OnLongClickListener() {
                     @RequiresApi(api = Build.VERSION_CODES.M)
                     @Override
                     public boolean onLongClick(View view) {
 
-                        if(!selectionmode) {
+                        if (!selectionmode) {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                v.vibrate(VibrationEffect.createOneShot(30,VibrationEffect.DEFAULT_AMPLITUDE));
+                                v.vibrate(VibrationEffect.createOneShot(30, VibrationEffect.DEFAULT_AMPLITUDE));
                             } else {
                                 v.vibrate(30);
                             }
                             selectionmode = true;
                         }
-                            if(recievedViewHolder.isselected) {
-                                recievedViewHolder.isselected = false;
-                                count--;
-                                selectedcount.setText(String.valueOf(count));
-                                selectedritems.remove(recievedViewHolder);
-                                indexes.remove(recievedViewHolder.getAdapterPosition()+"");
-                                recievedViewHolder.fullbackgroundlayout.setForeground(null);
-                            } else {
-                                recievedViewHolder.isselected = true;
-                                count++;
-                                selectedcount.setText(String.valueOf(count));
-                                selectedritems.add(recievedViewHolder);
-                                indexes.add(recievedViewHolder.getAdapterPosition()+"");
-                                recievedViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
-                            }
+                        if (recievedMediaViewHolder.isselected) {
+                            recievedMediaViewHolder.isselected = false;
+                            count--;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedmediaritems.remove(recievedMediaViewHolder);
+                            indexes.remove(recievedMediaViewHolder.getAdapterPosition() + "");
+                            recievedMediaViewHolder.fullbackgroundlayout.setForeground(null);
+                        } else {
+                            recievedMediaViewHolder.isselected = true;
+                            count++;
+                            selectedcount.setText(String.valueOf(count));
+                            selectedmediaritems.add(recievedMediaViewHolder);
+                            indexes.add(recievedMediaViewHolder.getAdapterPosition() + "");
+                            recievedMediaViewHolder.fullbackgroundlayout.setForeground(context.getResources().getDrawable(R.drawable.bg_selected_message));
+                        }
 
-                            if(count>1) {
-                                editmode = false;
-                                editmessagelayout.setVisibility(View.GONE);
-                            }
+                        if (count > 1) {
+                            editmode = false;
+                            editmessagelayout.setVisibility(View.GONE);
+                        }
 
-                            if(count==0) {
-                                chatmenulayout.setVisibility(View.GONE);
-                                selectionmode = false;
-                            } else {
-                                if(issearching) {
-                                    issearching = false;
-                                    triggeredposition = -1;
-                                    searchedIndexes.clear();
-                                    maininputlayout.setVisibility(View.VISIBLE);
-                                    searchlayout.setVisibility(View.GONE);
-                                }
-                                editmessagelayout.setVisibility(View.GONE);
-                                chatmenulayout.setVisibility(View.VISIBLE);
+                        if (count == 0) {
+                            hideThisViewByAlpha(chatmenulayout);
+                            selectionmode = false;
+                        } else {
+                            if (issearching) {
+                                issearching = false;
+                                triggeredposition = -1;
+                                searchedIndexes.clear();
+                                maininputlayout.setVisibility(View.VISIBLE);
+                                searchlayout.setVisibility(View.GONE);
                             }
+                            editmessagelayout.setVisibility(View.GONE);
+                            revealThisViewByAlpha(chatmenulayout);
+                        }
                         return true;
                     }
                 });
-
-            } else {
+            }
+        } else {
 
                 NoteViewHolder noteViewHolder = (NoteViewHolder) holder;
                 noteViewHolder.note.setText(messageList.get(position));
-                if(messageList.get(position).contains("Messages and calls are end-to-end encrypted. No one outside of this chat") && position == 1) {
+                if (messageList.get(position).contains("Messages and calls are end-to-end encrypted. No one outside of this chat") && position == 1) {
                     noteViewHolder.note.setBackgroundResource(R.drawable.firstnotmessage_bg);
                 } else {
                     noteViewHolder.note.setBackgroundResource(R.drawable.date_bg);
@@ -2078,7 +2795,33 @@ public class Adapter extends RecyclerView.Adapter {
                 NoteViewHolder noteViewHolder = (NoteViewHolder) holder;
                 noteViewHolder.note.setText(messageList.get(position));
         }*/
-}
+
+    }
+
+    private void revealThisViewByAlpha(ConstraintLayout layout) {
+        layout.setVisibility(View.VISIBLE);
+        layout.animate().alpha(1.0f).setDuration(200).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                layout.animate().setListener(null);
+            }
+        });
+    }
+
+    private void hideThisViewByAlpha(ConstraintLayout layout) {
+        layout.animate().alpha(0.0f).setDuration(200).setListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                layout.animate().setListener(null);
+                layout.setVisibility(View.GONE);
+            }
+        });
+    }
+
+    private void addThumb() {
+    }
 
     @Override
     public int getItemCount() {
@@ -2111,9 +2854,10 @@ public class Adapter extends RecyclerView.Adapter {
 
 }
 
-/*class SentViewHolder extends RecyclerView.ViewHolder {
-    ConstraintLayout senderLayout;
-    RelativeLayout fullbackgroundlayout;
+class SentViewHolder extends RecyclerView.ViewHolder {
+    ImFlexboxLayout senderLayout;
+    ConstraintLayout senderBubbleBg;
+    LinearLayout fullbackgroundlayout;
     TextView sentmessage,senttime;
     boolean isselected = false;
     ImageView ticks;
@@ -2122,13 +2866,14 @@ public class Adapter extends RecyclerView.Adapter {
         super(itemView);
         senderLayout = itemView.findViewById(R.id.sender_bg_layout);
         fullbackgroundlayout = itemView.findViewById(R.id.senderlayoutfull);
-        sentmessage = itemView.findViewById(R.id.recievedmessage2);
-        senttime = itemView.findViewById(R.id.recievedtime2);
-        ticks = itemView.findViewById(R.id.ticks2);
+        sentmessage = itemView.findViewById(R.id.recievedmessage);
+        senttime = itemView.findViewById(R.id.recievedtime);
+        ticks = itemView.findViewById(R.id.ticks);
+        senderBubbleBg = itemView.findViewById(R.id.senderbubblebg);
     }
-}*/
+}
 
-    class SentViewHolder extends RecyclerView.ViewHolder {
+    /*class SentViewHolder extends RecyclerView.ViewHolder {
         ImFlexboxLayout senderLayout;
         LinearLayout fullbackgroundlayout,svideotimelayout;
         TextView sentmessage,senttime,svideotimetext,audioduration,filename,fileextension;
@@ -2159,11 +2904,43 @@ public class Adapter extends RecyclerView.Adapter {
             filename = itemView.findViewById(R.id.textView19);
             fileextension = itemView.findViewById(R.id.textView21);
         }
-    }
+    }*/
+    class SentMediaViewHolder extends RecyclerView.ViewHolder {
+       ImFlexboxLayoutForMedia senderLayout;
+       LinearLayout fullbackgroundlayout,svideotimelayout;
+       TextView sentmessage,senttime,svideotimetext,audioduration,filename,fileextension;
+       boolean isselected = false;
+       ImageView mainimage,ticks,playbutton,saudioplaybutton;
+       CardView imagecontainer;
+       ConstraintLayout senderBubbleBg,senderaudiolayout,documentlayout;
+       SeekBar seekBar;
 
-/*class RecievedViewHolder extends RecyclerView.ViewHolder {
+       public SentMediaViewHolder(@NonNull View itemView) {
+        super(itemView);
+        senderLayout = itemView.findViewById(R.id.sender_media_bg_layout);
+        fullbackgroundlayout = itemView.findViewById(R.id.senderlayoutfull);
+        svideotimelayout = itemView.findViewById(R.id.sendervideodurationtimelayout);
+        senderBubbleBg = itemView.findViewById(R.id.sendermediabubblebg);
+        sentmessage = itemView.findViewById(R.id.recievedmessage);
+        senttime = itemView.findViewById(R.id.recievedtime);
+        svideotimetext = itemView.findViewById(R.id.svideotimetext);
+        audioduration = itemView.findViewById(R.id.saudioduration);
+        ticks = itemView.findViewById(R.id.ticks);
+        playbutton = itemView.findViewById(R.id.playbuttonimg);
+        mainimage = itemView.findViewById(R.id.mainimagesender);
+        imagecontainer = itemView.findViewById(R.id.imageView3);
+        senderaudiolayout = itemView.findViewById(R.id.senderaudiolayout);
+        documentlayout = itemView.findViewById(R.id.document_layout);
+        seekBar = itemView.findViewById(R.id.seekBar2);
+        saudioplaybutton = itemView.findViewById(R.id.saudioplaybutton);
+        filename = itemView.findViewById(R.id.textView19);
+        fileextension = itemView.findViewById(R.id.textView21);
+    }
+}
+
+class RecievedViewHolder extends RecyclerView.ViewHolder {
     ConstraintLayout recieverLayout;
-    RelativeLayout fullbackgroundlayout;
+    LinearLayout fullbackgroundlayout;
     TextView recievedmessage;
     TextView recievedtime;
     TextView recievername;
@@ -2174,13 +2951,13 @@ public class Adapter extends RecyclerView.Adapter {
         super(itemView);
         recieverLayout = itemView.findViewById(R.id.reciever_bg_layout);
         fullbackgroundlayout = itemView.findViewById(R.id.recieverlayoutfull);
-        recievername = itemView.findViewById(R.id.textView172);
-        recievedmessage = itemView.findViewById(R.id.recievedmessage2);
-        recievedtime = itemView.findViewById(R.id.recievedtime2);
+        recievername = itemView.findViewById(R.id.textView17);
+        recievedmessage = itemView.findViewById(R.id.recievedmessage);
+        recievedtime = itemView.findViewById(R.id.recievedtime);
     }
-}*/
+}
 
-    class RecievedViewHolder extends RecyclerView.ViewHolder {
+    /*class RecievedViewHolder extends RecyclerView.ViewHolder {
         ConstraintLayout recieverLayout,recieverAudioLayout,documentLayout;
         LinearLayout fullbackgroundlayout,rvideotimelayout;
         TextView recievedmessage;
@@ -2215,7 +2992,44 @@ public class Adapter extends RecyclerView.Adapter {
             fileExtension2 = itemView.findViewById(R.id.textView21);
             fileSize = itemView.findViewById(R.id.textView22);
         }
+    }*/
+
+class RecievedMediaViewHolder extends RecyclerView.ViewHolder {
+    ConstraintLayout recieverLayout,recieverAudioLayout,documentLayout;
+    LinearLayout fullbackgroundlayout,rvideotimelayout;
+    TextView recievedmessage;
+    TextView recievedtime,rvideotimetext,rmediarecievedtime,audioDuration,fileName,fileExtension,fileExtension2,fileSize;
+    TextView recievername;
+    ImageView mainimage,playbutton,raudioplaybutton;
+    CardView imagecontainer;
+    SeekBar seekBar;
+    boolean isselected = false;
+
+
+    public RecievedMediaViewHolder(@NonNull View itemView) {
+        super(itemView);
+        recieverLayout = itemView.findViewById(R.id.reciever_bg_layout);
+        recieverAudioLayout = itemView.findViewById(R.id.recieveraudiolayout);
+        documentLayout = itemView.findViewById(R.id.reciever_document_layout);
+        fullbackgroundlayout = itemView.findViewById(R.id.recieverlayoutfull);
+        rvideotimelayout = itemView.findViewById(R.id.recievervideodurationtimelayout);
+        recievername = itemView.findViewById(R.id.textView17);
+        mainimage = itemView.findViewById(R.id.mainimagereciever);
+        playbutton = itemView.findViewById(R.id.playbuttonimg2);
+        raudioplaybutton = itemView.findViewById(R.id.raudioplaybutton);
+        imagecontainer = itemView.findViewById(R.id.imageView19);
+        recievedmessage = itemView.findViewById(R.id.recievedmessage);
+        recievedtime = itemView.findViewById(R.id.recievedtime);
+        rvideotimetext = itemView.findViewById(R.id.rvideotimetext);
+        rmediarecievedtime = itemView.findViewById(R.id.imagerecievedtime);
+        audioDuration = itemView.findViewById(R.id.textView4);
+        seekBar = itemView.findViewById(R.id.seekBar);
+        fileExtension = itemView.findViewById(R.id.textView24);
+        fileName = itemView.findViewById(R.id.textView19);
+        fileExtension2 = itemView.findViewById(R.id.textView21);
+        fileSize = itemView.findViewById(R.id.textView22);
     }
+}
 
     class NoteViewHolder extends  RecyclerView.ViewHolder {
 
@@ -2227,3 +3041,4 @@ public class Adapter extends RecyclerView.Adapter {
         }
 
     }
+

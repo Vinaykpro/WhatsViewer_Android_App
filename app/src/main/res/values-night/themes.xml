@@ -41,4 +41,9 @@
         <item name="android:textColor">#fff</item>
     </style>
 
+    <style name="MyActivityTheme" parent="Theme.AppCompat">
+        <item name="android:windowFullscreen">true</item>
+        <!-- Add any other custom attributes here -->
+    </style>
+
 </resources>

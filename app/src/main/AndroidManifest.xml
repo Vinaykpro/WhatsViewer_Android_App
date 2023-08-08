@@ -22,7 +22,8 @@
         <activity
             android:name=".MediaViewerActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/MyActivityTheme">
 
         </activity>
 

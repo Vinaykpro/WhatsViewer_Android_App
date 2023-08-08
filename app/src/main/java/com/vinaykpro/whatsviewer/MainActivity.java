@@ -30,6 +30,7 @@ import android.os.Handler;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
@@ -41,6 +42,20 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.ads.AdError;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.FullScreenContentCallback;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.OnUserEarnedRewardListener;
+import com.google.android.gms.ads.initialization.InitializationStatus;
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
+import com.google.android.gms.ads.interstitial.InterstitialAd;
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.google.android.gms.ads.rewarded.RewardItem;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.material.tabs.TabLayout;
 
 import java.io.File;
@@ -73,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
     MySqllite database;
     int usercount;
 
+    private InterstitialAd mInterstitialAd;
+
+    AdView mAdView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +99,27 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         database = new MySqllite(MainActivity.this);
+
+        Bundle extrasu = getIntent().getExtras();
+        boolean noad = extrasu.getBoolean("noad",false);
+
+        MobileAds.initialize(MainActivity.this, new OnInitializationCompleteListener() {
+            @Override
+            public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
+            }
+        });
+
+        mAdView = findViewById(R.id.adView2);
+        AdRequest adRequestbanner = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequestbanner);
+
+
+        if(!noad) {
+            int x = (int)Math.floor(Math.random()*100);
+            if(x<=65) {
+                showInterstitialAd();
+            }
+        }
 
 
 
@@ -198,7 +237,56 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
 
+    public void showInterstitialAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(MainActivity.this,"ca-app-pub-2813592783630195/9571135356", adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        // The mInterstitialAd reference will be null until
+                        // an ad is loaded.
+                        mInterstitialAd = interstitialAd;
+                        mInterstitialAd.show(MainActivity.this);
+                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                            @Override
+                            public void onAdClicked() {
+                                // Called when a click is recorded for an ad.
+                            }
+
+                            @Override
+                            public void onAdDismissedFullScreenContent() {
+                                // Called when ad is dismissed.
+                                // Set the ad reference to null so you don't show the ad a second time.
+                                mInterstitialAd = null;
+                            }
+                            @Override
+                            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                                // Called when ad fails to show.
+                                mInterstitialAd = null;
+                            }
+
+                            @Override
+                            public void onAdImpression() {
+                                // Called when an impression is recorded for an ad.
+                                //Toast.makeText(HomeActivity.this, "Ad got impression", Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onAdShowedFullScreenContent() {
+                                // Called when ad is shown.
+                                //Toast.makeText(HomeActivity.this, "Ad showed full screen content", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        // Handle the error
+                        mInterstitialAd = null;
+                    }
+                });
     }
 
     @SuppressLint("NotifyDataSetChanged")
@@ -207,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
         linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
         recyclerView.setLayoutManager(linearLayoutManager);
-        adapter = new Adapter(messageList,tablename,fname,sname,MainActivity.this,chatmenulayout,backbtn,edit,copy,delete,info,selectedcount,editmessagelayout,editmsgbackbtn,editmsgedittext,editmsgupdate,searchlayout,searchlayoutbackbtn,searchlayoutedittext,searchlayoutupbutton,searchlayoutdownbutton,linearLayoutManager);
+        adapter = new Adapter(messageList,tablename,fname,sname,this,chatmenulayout,backbtn,edit,copy,delete,info,selectedcount,editmessagelayout,editmsgbackbtn,editmsgedittext,editmsgupdate,searchlayout,searchlayoutbackbtn,searchlayoutedittext,searchlayoutupbutton,searchlayoutdownbutton,linearLayoutManager);
         recyclerView.setAdapter(adapter);
         ((SimpleItemAnimator) Objects.requireNonNull(recyclerView.getItemAnimator())).setSupportsChangeAnimations(false);
         adapter.notifyDataSetChanged();

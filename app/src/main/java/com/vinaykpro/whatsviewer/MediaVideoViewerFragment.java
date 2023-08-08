@@ -99,17 +99,26 @@ public class MediaVideoViewerFragment extends Fragment {
                 @Override
                 public void onPrepared(MediaPlayer mediaPlayer) {
                     int duration = videoView.getDuration();
-                    fullDuration.setText(convertToMMSS(duration+""));
+                    fullDuration.setText(convertToMMSS(duration + ""));
                     videoSeekbar.setMax(duration);
                 }
 
             });
-            try { Glide.with(requireContext()).load(new File(path)).into(mainimage); } catch (Exception e) {
-                Toast.makeText(requireContext(), e+"", Toast.LENGTH_SHORT).show();
+            try {
+                new Handler().postDelayed(new Runnable() {
+                                              @Override
+                                              public void run() {
+                                                  Glide.with(requireContext()).load(new File(path)).into(mainimage);
+                                              }
+                                          }
+                        , 300);
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), e + "", Toast.LENGTH_SHORT).show();
             }
+        }
             //videoView;
             //videoView.start();
-        }
+
 
         Runnable r = new Runnable() {
             @Override

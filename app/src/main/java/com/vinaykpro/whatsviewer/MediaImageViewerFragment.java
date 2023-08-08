@@ -11,11 +11,13 @@ import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.RequiresApi;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -207,24 +209,24 @@ public class MediaImageViewerFragment extends Fragment {
         //path = "storage/emulated/0/Download/Crop1.jpg";
         if(path!=null)
         {
-            try {
-                Glide.with(requireActivity().getApplicationContext()).load(new File(path)).into(mainimage);
-                } catch (Exception e) {
-                Toast.makeText(requireActivity(), e.toString(), Toast.LENGTH_SHORT).show();
-            }
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            {
-            /*ContentResolver resolver = requireContext().getContentResolver();
-            ContentValues contentValues = new ContentValues();
-            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME,"Testimg");
-            contentValues.put(MediaStore.MediaColumns.MIME_TYPE,"image/jpeg");
-            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH,"Pictures/WhatsViewer");
+            String finalPath = path;
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            Glide.with(requireActivity()).load(Uri.fromFile(new File(finalPath))).into(mainimage);
+                            //Toast.makeText(requireActivity(), requireActivity().getFilesDir()+"", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Glide.with(requireActivity().getApplicationContext()).load(new File(finalPath)).into(mainimage);
+                        }
 
-            Uri uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,contentValues);*/
-                Uri uri = getImageContentUri(requireContext().getApplicationContext(),new File(path));
-                Toast.makeText(requireActivity(), uri+"", Toast.LENGTH_SHORT).show();
-                Glide.with(requireActivity().getApplicationContext()).load(uri).into(mainimage);
-            }
+                    } catch (Exception e) {
+                        Toast.makeText(requireActivity(), e.toString(), Toast.LENGTH_SHORT).show();
+                    }
+                }
+            },300);
+
         }
         /*assert this.getFragmentManager() != null;
         this.getFragmentManager().beginTransaction().setReorderingAllowed(true).addSharedElement(mainimage,mainimage.getTransitionName()).replace(container.getId(),new MediaImageViewerFragment(),MediaImageViewerFragment.class.getSimpleName()).addToBackStack(null).commit();

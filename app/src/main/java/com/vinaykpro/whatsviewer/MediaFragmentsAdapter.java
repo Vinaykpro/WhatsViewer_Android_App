@@ -144,6 +144,10 @@ public class MediaFragmentsAdapter extends FragmentStateAdapter {
         //return mif;
     }
 
+    public void onBackPressed() {
+        pager.setAlpha(0.0f);
+    }
+
     @Override
     public int getItemCount() {
         return mediaList.size();

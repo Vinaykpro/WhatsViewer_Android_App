@@ -41,5 +41,10 @@
         <item name="android:textColor">#000</item>
     </style>
 
+    <style name="MyActivityTheme" parent="Theme.AppCompat">
+        <item name="android:windowFullscreen">true</item>
+        <!-- Add any other custom attributes here -->
+    </style>
+
 
 </resources>

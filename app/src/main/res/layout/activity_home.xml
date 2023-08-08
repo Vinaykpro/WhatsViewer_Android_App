@@ -81,7 +81,7 @@
         android:layout_height="0dp"
         android:background="#5C000000"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/viewPager2"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tabLayout">
