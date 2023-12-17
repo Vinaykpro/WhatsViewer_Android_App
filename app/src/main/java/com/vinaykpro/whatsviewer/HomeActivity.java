@@ -250,6 +250,8 @@ public class HomeActivity extends AppCompatActivity {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         }
 
+
+
         Objects.requireNonNull(getSupportActionBar()).setElevation(0.0f);
         MySqllite database = new MySqllite(this);
 

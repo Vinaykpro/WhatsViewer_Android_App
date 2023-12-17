@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
@@ -15,8 +16,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -35,10 +39,12 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.animation.AnticipateOvershootInterpolator;
 import android.widget.EditText;
 
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ResourceCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -88,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
     MySqllite database;
     int usercount;
 
+    TextView topnotemain;
+
     private InterstitialAd mInterstitialAd;
 
     AdView mAdView;
@@ -116,12 +124,13 @@ public class MainActivity extends AppCompatActivity {
 
         if(!noad) {
             int x = (int)Math.floor(Math.random()*100);
-            if(x<=65) {
+            if(x<=60) {
                 showInterstitialAd();
             }
         }
 
 
+        topnotemain = findViewById(R.id.topnotemain);
 
         recyclerView = findViewById(R.id.backg);
         Objects.requireNonNull(getSupportActionBar()).hide();
@@ -224,11 +233,21 @@ public class MainActivity extends AppCompatActivity {
         });
         updatedata();
 
+        if(getNightMode()) {
+            topnotemain.setTextColor(ResourcesCompat.getColor(getResources(),R.color.lightwhite,null));
+        } else {
+            topnotemain.setTextColor(ResourcesCompat.getColor(getResources(),R.color.verylightblack,null));
+        }
+
+        topnotemain.setTranslationY(-120f);
+
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 int total = linearLayoutManager.getItemCount();
+                //int firstitem = linearLayoutManager.findFirstVisibleItemPosition();
+
                 int lastitem = linearLayoutManager.findLastCompletelyVisibleItemPosition();
                 if(lastitem >= total-2) {
                     gotolast.setVisibility(View.GONE);
@@ -236,7 +255,119 @@ public class MainActivity extends AppCompatActivity {
                     gotolast.setVisibility(View.VISIBLE);
                 }
             }
+
+
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                switch (newState) {
+                    case RecyclerView.SCROLL_STATE_IDLE:
+                        if(topnotemain.getVisibility()!=View.GONE) {
+                            topnotemain.setVisibility(View.VISIBLE);
+                            topnotemain.animate().translationY(-120f).setDuration(500).setListener(new AnimatorListenerAdapter() {
+                                @Override
+                                public void onAnimationEnd(Animator animation) {
+                                    super.onAnimationEnd(animation);
+                                    topnotemain.setVisibility(View.GONE);
+                                    topnotemain.animate().setListener(null);
+                                }
+                            });
+                        }
+                        break;
+                    case RecyclerView.SCROLL_STATE_DRAGGING:
+                        if(topnotemain.getVisibility()!=View.VISIBLE) {
+                            topnotemain.setVisibility(View.VISIBLE);
+                            topnotemain.animate().translationY(0.0f).setInterpolator(new AnticipateOvershootInterpolator()).setDuration(500);
+                        }
+                        //Toast.makeText(MainActivity.this, "Scrolling", Toast.LENGTH_SHORT).show();
+                        int firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+                        String s = messageList.get(firstitem);
+                        String date = "Date not found";
+                        if (canigetDate(s)) {
+                            date = getDate(s);
+                            topnotemain.setText(getReadableDate(date));
+                        }
+                        break;
+                    case RecyclerView.SCROLL_STATE_SETTLING:
+                        firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+                        s = messageList.get(firstitem);
+                        date = "Date not found";
+                        if (canigetDate(s)) {
+                            date = getDate(s);
+                            topnotemain.setText(getReadableDate(date));
+                        }
+                        break;
+                }
+            }
         });
+
+        /*recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+            }
+        });*/
+
+        /*recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+
+        });*/
+
+    }
+
+    public boolean getNightMode()
+    {
+        SharedPreferences sharedPreferences = getSharedPreferences("SP",MODE_PRIVATE);
+        return sharedPreferences.getBoolean("darkMode",false);
+    }
+
+    private boolean canigetDate(String s) {
+        int commaindex = s.indexOf(",");
+        boolean condition = false;
+        if(commaindex > 0 && commaindex <= 10 && s.indexOf('/') <=9) {
+            String date = s.substring(0,commaindex);
+            String[] test = date.split("/");
+            if (test.length == 3) {
+                condition = true;
+            }
+        }
+        return condition;
+    }
+
+    private String getDate(String s) {
+        return s.substring(0,s.indexOf(","));
+    }
+
+    private String getReadableDate(String s) {
+
+        String[] months = new String[] {"January","February","March","April","May","June","July","August","September","October","November","December"};
+        int day = Integer.parseInt(s.substring(0,s.indexOf("/")));
+        s = s.substring(s.indexOf("/")+1);
+        int month = Integer.parseInt(s.substring(0,s.indexOf("/")));
+        if(month > 12 && day <= 12) {
+            /*useseconddateformat = true;
+            changedatestillnow = true;*/
+            int temp = month;
+            month = day;
+            day = temp;
+        }/* else if (useseconddateformat && day <= 12) {
+            int temp = month;
+            month = day;
+            day = temp;
+        }*/
+        s = s.substring(s.indexOf("/")+1);
+        int year = Integer.parseInt(s);
+        if(year<100) {
+            /*if(!changedatestillnow) {
+                readabledates.add(day + " " + months[month - 1] + " 20" + year);
+            }*/
+            return day + " " + months[month - 1] + " 20" + year;
+        }
+        else {
+            /*if(!changedatestillnow) {
+                readabledates.add(day + " " + months[month - 1] + " " + year);
+            }*/
+            return day + " " + months[month - 1] + " " + year;
+        }
     }
 
     public void showInterstitialAd() {
