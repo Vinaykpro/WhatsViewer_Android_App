@@ -37,10 +37,6 @@
         <item name="android:background">#1f2c34</item>
     </style>
 
-    <style name="TextColor">
-        <item name="android:textColor">#fff</item>
-    </style>
-
     <style name="MyActivityTheme" parent="Theme.AppCompat">
         <item name="android:windowFullscreen">true</item>
         <!-- Add any other custom attributes here -->

@@ -22,15 +22,15 @@ public class IntroActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         Objects.requireNonNull(getSupportActionBar()).hide();
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_intro);
-        new Handler().postDelayed(new Runnable() {
+        setContentView(R.layout.templayout);
+        /*new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 Intent i = new Intent(IntroActivity.this,HomeActivity.class);
                 startActivity(i);
                 finish();
             }
-        },1000);
+        },1000);*/
 
     }
 

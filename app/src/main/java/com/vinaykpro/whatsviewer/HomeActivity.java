@@ -37,6 +37,7 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -44,6 +45,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.webkit.MimeTypeMap;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -65,6 +67,11 @@ import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.ump.ConsentDebugSettings;
+import com.google.android.ump.ConsentForm;
+import com.google.android.ump.ConsentInformation;
+import com.google.android.ump.ConsentRequestParameters;
+import com.google.android.ump.UserMessagingPlatform;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -74,9 +81,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.security.SecureRandom;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -90,13 +102,15 @@ public class HomeActivity extends AppCompatActivity {
     FloatingActionButton addtextfilebutton;
     public static boolean isfilevalid = false;
     public static List<String> messageList = new ArrayList<>();
+    public  List<String> datesList = new ArrayList<>();
+    public  List<String> datesFormatList = new ArrayList<>();
     String[] months = new String[] {"January","February","March","April","May","June","July","August","September","October","November","December"};
     public List<String> readabledates;
     public boolean changedatestillnow = false;
     public boolean useseconddateformat = false;
-    String firstName,secondName = "",tablename;
+    String firstName,secondName = "",tablename,chatName;
     public static List<String> names;
-    ConstraintLayout loadinglayout;
+    public static ConstraintLayout loadinglayout;
     Intent data;
     Uri uri;
     File f;
@@ -155,68 +169,21 @@ public class HomeActivity extends AppCompatActivity {
     private InterstitialAd mInterstitialAd;
     private RewardedAd mRewardAd;
 
+
+    private ConsentInformation consentInformation;
+    private final AtomicBoolean isMobileAdsInitializeCalled = new AtomicBoolean(false);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        /*File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath());
-        String sx = "Something went wrong";
-        for (String name : Objects.requireNonNull(f.list())) {
-            sx += "\n"+name;
-        }
-        mainfiles.setText(sx);*/
-        /*SharedPreferences sharedPreferences = getSharedPreferences("SP",MODE_PRIVATE);*/
-        /*pathu = Environment.getExternalStorageDirectory().getAbsolutePath()+"/whatsapp/images/profile.png";
-        imgview.setImageURI(Uri.fromFile(new File(pathu)));*/
 
-        /*if(Build.VERSION.SDK_INT > 29) {
-            Intent i = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,Uri.fromParts("package",getPackageName(),null));
-            startActivity(i);
-        }*/
+        //MobileAds.initialize(HomeActivity.this);
 
-        MobileAds.initialize(HomeActivity.this, new OnInitializationCompleteListener() {
-            @Override
-            public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
-            }
-        });
+        requestConsentForm();
 
-        mAdView = findViewById(R.id.adView);
-        AdRequest adRequestbanner = new AdRequest.Builder().build();
-        mAdView.loadAd(adRequestbanner);
-
-        mAdView.setAdListener(new AdListener() {
-            @Override
-            public void onAdClicked() {
-                super.onAdClicked();
-            }
-
-            @Override
-            public void onAdClosed() {
-                super.onAdClosed();
-            }
-
-            @Override
-            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                super.onAdFailedToLoad(loadAdError);
-            }
-
-            @Override
-            public void onAdImpression() {
-                super.onAdImpression();
-            }
-
-            @Override
-            public void onAdLoaded() {
-                super.onAdLoaded();
-            }
-
-            @Override
-            public void onAdOpened() {
-                super.onAdOpened();
-            }
-        });
         //Toast.makeText(this, Environment.getExternalStorageDirectory().getAbsolutePath()+"/Download/attrs.xml", Toast.LENGTH_SHORT).show();
         /*File fn = new File(Environment.getExternalStorageDirectory().getAbsolutePath()+"/WhatsViewer/files");
         if(isWriteStoragePermissionGranted()) {
@@ -453,6 +420,65 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    private void requestConsentForm() {
+        // Create a ConsentRequestParameters object.
+        ConsentRequestParameters params = new ConsentRequestParameters
+                .Builder()
+                .build();
+
+        consentInformation = UserMessagingPlatform.getConsentInformation(this);
+        consentInformation.requestConsentInfoUpdate(
+                this,
+                params,
+                (ConsentInformation.OnConsentInfoUpdateSuccessListener) () -> {
+                    UserMessagingPlatform.loadAndShowConsentFormIfRequired(
+                            this,
+                            (ConsentForm.OnConsentFormDismissedListener) loadAndShowError -> {
+                                if (loadAndShowError != null) {
+                                    // Consent gathering failed.
+                                    Log.w("TAG", String.format("%s: %s",
+                                            loadAndShowError.getErrorCode(),
+                                            loadAndShowError.getMessage()));
+                                }
+
+                                // Consent has been gathered.
+                                if (consentInformation.canRequestAds()) {
+                                    initializeMobileAdsSdk();
+                                }
+                            }
+                    );
+                },
+                (ConsentInformation.OnConsentInfoUpdateFailureListener) requestConsentError -> {
+                    // Consent gathering failed.
+                    Log.w("TAG", String.format("%s: %s",
+                            requestConsentError.getErrorCode(),
+                            requestConsentError.getMessage()));
+                });
+
+        // Check if you can initialize the Google Mobile Ads SDK in parallel
+        // while checking for new consent information. Consent obtained in
+        // the previous session can be used to request ads.
+        if (consentInformation.canRequestAds()) {
+            initializeMobileAdsSdk();
+        }
+    }
+
+    private void initializeMobileAdsSdk() {
+        if (isMobileAdsInitializeCalled.getAndSet(true)) {
+            return;
+        }
+
+        // Initialize the Google Mobile Ads SDK.
+        MobileAds.initialize(this);
+
+        // TODO: Request an ad.
+        // InterstitialAd.load(...);
+        mAdView = findViewById(R.id.adView);
+        AdRequest adRequestbanner = new AdRequest.Builder().build();
+        mAdView.loadAd(adRequestbanner);
+
+    }
+
     private String getFileName(Uri uri)
     {
         Cursor cursor = getContentResolver().query(uri,null,null,null,null);
@@ -594,7 +620,7 @@ public class HomeActivity extends AppCompatActivity {
                             Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                             intent.putExtra("fname", firstName);
                             intent.putExtra("sname", secondName);
-                            intent.putExtra("zname", firstName);
+                            intent.putExtra("zname", chatName);
                             intent.putExtra("tablename", tablename);
                             intent.putExtra("noad",true);
                             startActivity(intent);
@@ -622,7 +648,7 @@ public class HomeActivity extends AppCompatActivity {
                                     Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                                     intent.putExtra("fname", firstName);
                                     intent.putExtra("sname", secondName);
-                                    intent.putExtra("zname", firstName);
+                                    intent.putExtra("zname", chatName);
                                     intent.putExtra("tablename", tablename);
                                     intent.putExtra("noad",true);
                                     startActivity(intent);
@@ -641,7 +667,7 @@ public class HomeActivity extends AppCompatActivity {
                                     Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                                     intent.putExtra("fname", firstName);
                                     intent.putExtra("sname", secondName);
-                                    intent.putExtra("zname", firstName);
+                                    intent.putExtra("zname", chatName);
                                     intent.putExtra("tablename", tablename);
                                     intent.putExtra("noad",true);
                                     startActivity(intent);
@@ -660,7 +686,10 @@ public class HomeActivity extends AppCompatActivity {
         {
             //f = new File(uri.toString());
             messageList.clear();
+            datesList.clear();
             ss = "";
+            temp = "";
+            temp0 = "";
             loadinglayout.setVisibility(View.VISIBLE);
             ischataddedandreadytolaunch = false;
             String filename = null;
@@ -680,7 +709,7 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
             }
-            Toast.makeText(HomeActivity.this, filename, Toast.LENGTH_SHORT).show();
+            String finalFilename = filename;
             Thread t1 = new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -697,6 +726,7 @@ public class HomeActivity extends AppCompatActivity {
                         boolean isfirst = true;
 
                         names.clear();
+                        ss = "";
 
                         while (reader.ready()) {
                             ss = reader.readLine();
@@ -710,7 +740,8 @@ public class HomeActivity extends AppCompatActivity {
                                 if (istempavailable) {
                                     if ((date.equals("") && canigetDate(temp)) || (canigetDate(temp) && !(getDate(temp).equals(date)))) {
                                         date = getDate(temp);
-                                        messageList.add(getReadableDate(date));
+                                        messageList.add(date);
+                                        datesList.add(date);
                                     }
                                     messageList.add(temp);
                                     istempavailable = false;
@@ -719,7 +750,8 @@ public class HomeActivity extends AppCompatActivity {
                                     if (!(temp0.equals(""))) {
                                         if ((date.equals("") && canigetDate(temp0)) || (canigetDate(temp0) && !(getDate(temp0).equals(date)))) {
                                             date = getDate(temp0);
-                                            messageList.add(getReadableDate(date));
+                                            messageList.add(date);
+                                            datesList.add(date);
                                         }
                                         messageList.add(temp0);
                                         istemp0available = false;
@@ -733,7 +765,8 @@ public class HomeActivity extends AppCompatActivity {
                                 if (istemp0available) {
                                     if ((date.equals("") && canigetDate(temp0)) || (canigetDate(temp0) && !(getDate(temp0).equals(date)))) {
                                         date = getDate(temp0);
-                                        messageList.add(getReadableDate(date));
+                                        messageList.add(date);
+                                        datesList.add(date);
                                     }
                                     messageList.add(temp0);
                                     istemp0available = false;
@@ -741,7 +774,8 @@ public class HomeActivity extends AppCompatActivity {
 
                                 if ((date.equals("") && canigetDate(ss)) || (canigetDate(ss) && !(getDate(ss).equals(date)))) {
                                     date = getDate(ss);
-                                    messageList.add(getReadableDate(date));
+                                    messageList.add(date);
+                                    datesList.add(date);
                                 }
                                 try {
                                     ss = ss.substring(ss.indexOf("-") + 2);
@@ -778,16 +812,43 @@ public class HomeActivity extends AppCompatActivity {
                             messageList.add(temp0);
                             istemp0available = false;
                         }
+
+                        /*runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                String dates = "";
+                                for(String date : datesList) {
+                                    dates += date+"\n";
+                                }
+                            }
+                        });*/
+
+
                         if (isfilevalid) {
+                            chatName = "Set Name";
+                            String groupChatName = chatName;
+                            if(finalFilename!=null && finalFilename.toLowerCase().contains("whatsapp chat with")) {
+                                String tempName = finalFilename;
+                                tempName = tempName.replaceAll("(?i)WhatsApp Chat with","");
+                                tempName = tempName.replaceAll("(?i)\\.txt","");
+                                chatName = tempName.trim();
+                                groupChatName = chatName;
+                            }
                             prompt();
                             MySqllite sqllite = new MySqllite(HomeActivity.this);
                             //sqllite.addText(firstName);
-                            if(tablename==null)
-                            { tablename = generateRandomTableName(10); }
+                            //if(tablename==null)
+                            tablename = generateRandomTableName(10);
                             String templastseen = "online";
                             firstName = names.get(0);
                             if (names.size() == 2) {
-                                secondName = names.get(1);
+                                if(finalFilename!=null && finalFilename.contains(names.get(1))) {
+                                    secondName = names.get(1);
+                                } else {
+                                    firstName = names.get(1);
+                                    secondName = names.get(0);
+                                }
+                                chatName = secondName;
                             } else {
                                 secondName = "";
                                 for (int i = 0; i < names.size(); i++) {
@@ -797,12 +858,19 @@ public class HomeActivity extends AppCompatActivity {
                                         secondName += names.get(i) + "\n";
                                     }
                                 }
+                                chatName = groupChatName;
                                 if(names.size() != 1) {
                                     templastseen = "tap here for group info";
                                 }
                             }
+                            String uri = "day/month/year";
+                            datesFormatList = findPossibleDateFormats(datesList);
+                            if(!datesFormatList.isEmpty()) {
+                                uri = datesFormatList.get(0);
+                            }
 
-                            boolean t = sqllite.addText(firstName, tablename, firstName, secondName, firstName, names.size(), templastseen, "", "", null, 0,0);
+
+                            boolean t = sqllite.addText(chatName, tablename, firstName, secondName, firstName, names.size(), templastseen, "", "", uri, 0,0);
                             /*if(changedatestillnow) {
                                 for (int i=0;i<readabledates.size();i++) {
                                     messageList.set(messageList.indexOf(readabledates.get(i)),getFlippedDate(readabledates.get(i)));
@@ -812,13 +880,14 @@ public class HomeActivity extends AppCompatActivity {
                                 changedatestillnow = false;
                             }*/
                             sqllite.addChatToContact(tablename, messageList);
+                            sqllite.addDatesToChat(tablename,datesFormatList);
                             ischataddedandreadytolaunch = true;
                             if(isinterstitialadfinished) {
                                 isinterstitialadfinished = false;
                                 Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                                 intent.putExtra("fname", firstName);
                                 intent.putExtra("sname", secondName);
-                                intent.putExtra("zname", firstName);
+                                intent.putExtra("zname", chatName);
                                 intent.putExtra("tablename", tablename);
                                 ////startActivity(intent);
                                 runOnUiThread(new Runnable() {
@@ -847,6 +916,90 @@ public class HomeActivity extends AppCompatActivity {
             });
             t1.start();
         }
+    }
+
+    private static Map<String, String> FORMAT_MAPPING = new HashMap<String, String>() {{
+        put("dd", "day");
+        put("d", "day");
+        put("MM", "month");
+        put("M", "month");
+        put("yy", "year");
+        put("yyyy", "year");
+    }
+    };
+
+    public static List<String> findPossibleDateFormats(List<String> dates) {
+        List<String> possibleFormats = new ArrayList<>();
+
+        String[] formats = {
+                "dd/MM/yy", "dd/MM/yyyy",
+                "yy/MM/dd", "yyyy/MM/dd",
+                "MM/dd/yy", "MM/dd/yyyy",
+                "yy/dd/MM", "yyyy/dd/MM",
+                "MM/yy/dd", "MM/yyyy/dd",
+                "dd/yy/MM", "dd/yyyy/MM",
+
+                "d/MM/yy", "d/MM/yyyy",
+                "yy/MM/d", "yyyy/MM/d",
+                "MM/d/yy", "MM/d/yyyy",
+                "yy/d/MM", "yyyy/d/MM",
+                "MM/yy/d", "MM/yyyy/d",
+                "d/yy/MM", "d/yyyy/MM",
+
+                "dd/M/yy", "dd/M/yyyy",
+                "yy/M/dd", "yyyy/M/dd",
+                "M/dd/yy", "M/dd/yyyy",
+                "yy/dd/M", "yyyy/dd/M",
+                "M/yy/dd", "M/yyyy/dd",
+                "dd/yy/M", "dd/yyyy/M",
+
+                "d/M/yy", "d/M/yyyy",
+                "yy/M/d", "yyyy/M/d",
+                "M/d/yy", "M/d/yyyy",
+                "yy/d/M", "yyyy/d/M",
+                "M/yy/d", "M/yyyy/d",
+                "d/yy/M", "d/yyyy/M"
+        };
+
+        for (String format : formats) {
+            boolean allMatched = true;
+            SimpleDateFormat sdf = new SimpleDateFormat(format);
+            sdf.setLenient(false);
+
+            for (String date : dates) {
+                try {
+                    sdf.parse(date);
+                } catch (ParseException e) {
+                    // If a date doesn't match the format, move to the next format
+                    allMatched = false;
+                    break;
+                }
+            }
+
+            if (allMatched) {
+                StringBuilder formattedFormat = new StringBuilder();
+                for (String part : format.split("/")) {
+                    formattedFormat.append(FORMAT_MAPPING.get(part)).append("/");
+                }
+                formattedFormat.deleteCharAt(formattedFormat.length() - 1); // Remove trailing '/'
+
+                // Check if the shorter format already exists in possibleFormats list
+                boolean shorterFormatExists = false;
+                for (String possibleFormat : possibleFormats) {
+                    if (possibleFormat.startsWith(formattedFormat.toString().substring(0, 5))) {
+                        shorterFormatExists = true;
+                        break;
+                    }
+                }
+
+                // If the shorter format doesn't exist, add this format
+                if (!shorterFormatExists) {
+                    possibleFormats.add(formattedFormat.toString());
+                }
+            }
+        }
+
+        return possibleFormats;
     }
 
     private void prompt() {
@@ -1034,6 +1187,7 @@ public class HomeActivity extends AppCompatActivity {
             loadinglayout.setVisibility(View.GONE);
         }
     }
+
 
     /*ActivityResultLauncher<Intent> mediaOpener = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
         @Override

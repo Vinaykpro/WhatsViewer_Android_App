@@ -3,8 +3,10 @@ package com.vinaykpro.whatsviewer;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -12,6 +14,7 @@ import androidx.recyclerview.widget.SimpleItemAnimator;
 import androidx.viewpager2.widget.ViewPager2;
 
 import java.io.FileNotFoundException;
+import java.nio.InvalidMarkException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -19,11 +22,13 @@ import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.PorterDuff;
 import android.media.Image;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -37,14 +42,19 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.ResourceCursorAdapter;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -80,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     LinearLayoutManager linearLayoutManager;
     public static List<String> messageList;
+
+    public List<String> datesList;
     Adapter adapter;
     Calendar calendar;
     SimpleDateFormat simpleDateFormat;
@@ -96,6 +108,15 @@ public class MainActivity extends AppCompatActivity {
 
     TextView topnotemain;
 
+    String selectedDateFormat;
+
+    String[] months = new String[] {"January","February","March","April","May","June","July","August","September","October","November","December"};
+
+    ImageView exportChatCloseBtn;
+    ConstraintLayout exportChatLayout;
+
+
+
     private InterstitialAd mInterstitialAd;
 
     AdView mAdView;
@@ -105,6 +126,8 @@ public class MainActivity extends AppCompatActivity {
         //AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        HomeActivity.loadinglayout.setVisibility(View.GONE);
 
         database = new MySqllite(MainActivity.this);
 
@@ -125,8 +148,12 @@ public class MainActivity extends AppCompatActivity {
         if(!noad) {
             int x = (int)Math.floor(Math.random()*100);
             if(x<=60) {
-                showInterstitialAd();
+                //showInterstitialAd();
             }
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            ((ProgressBar)findViewById(R.id.progressBar2)).getIndeterminateDrawable().setColorFilter(ContextCompat.getColor(this,R.color.white), PorterDuff.Mode.SRC_IN);
         }
 
 
@@ -157,6 +184,9 @@ public class MainActivity extends AppCompatActivity {
         searchlayoutdownbutton = findViewById(R.id.imageView10);
 
         gotolast = findViewById(R.id.gotolastmessage);
+
+
+        // export chat layout
 
         searchlayout.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -201,8 +231,13 @@ public class MainActivity extends AppCompatActivity {
 
         username.setText(myname);
          messageList = database.getChatData(tablename);
+         datesList = database.getChatDates(tablename);
          initRecyclerView();
-            //loadMessages();
+         //loadMessages();
+        }
+
+        if(database.isTableExists(tablename+"dates")) {
+            selectedDateFormat = database.getProfilePicture(tablename);
         }
 
         ImageView callbtn = (ImageView) findViewById(R.id.voice_call);
@@ -262,40 +297,50 @@ public class MainActivity extends AppCompatActivity {
                 super.onScrollStateChanged(recyclerView, newState);
                 switch (newState) {
                     case RecyclerView.SCROLL_STATE_IDLE:
-                        if(topnotemain.getVisibility()!=View.GONE) {
-                            topnotemain.setVisibility(View.VISIBLE);
-                            topnotemain.animate().translationY(-120f).setDuration(500).setListener(new AnimatorListenerAdapter() {
-                                @Override
-                                public void onAnimationEnd(Animator animation) {
-                                    super.onAnimationEnd(animation);
-                                    topnotemain.setVisibility(View.GONE);
-                                    topnotemain.animate().setListener(null);
-                                }
-                            });
-                        }
+                        try {
+                            if (topnotemain.getVisibility() != View.GONE) {
+                                topnotemain.setVisibility(View.VISIBLE);
+                                topnotemain.animate().translationY(-120f).setDuration(500).setListener(new AnimatorListenerAdapter() {
+                                    @Override
+                                    public void onAnimationEnd(Animator animation) {
+                                        super.onAnimationEnd(animation);
+                                        topnotemain.setVisibility(View.GONE);
+                                        topnotemain.animate().setListener(null);
+                                    }
+                                });
+                            }
+                        } catch (Exception e) {}
                         break;
                     case RecyclerView.SCROLL_STATE_DRAGGING:
-                        if(topnotemain.getVisibility()!=View.VISIBLE) {
-                            topnotemain.setVisibility(View.VISIBLE);
-                            topnotemain.animate().translationY(0.0f).setInterpolator(new AnticipateOvershootInterpolator()).setDuration(500);
-                        }
-                        //Toast.makeText(MainActivity.this, "Scrolling", Toast.LENGTH_SHORT).show();
-                        int firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
-                        String s = messageList.get(firstitem);
+                        int firstitem;
+                        String s;
                         String date = "Date not found";
-                        if (canigetDate(s)) {
-                            date = getDate(s);
-                            topnotemain.setText(getReadableDate(date));
+                        try {
+                            if (topnotemain.getVisibility() != View.VISIBLE) {
+                                topnotemain.setVisibility(View.VISIBLE);
+                                topnotemain.animate().translationY(0.0f).setInterpolator(new AnticipateOvershootInterpolator()).setDuration(500);
+                            }
+                            //Toast.makeText(MainActivity.this, "Scrolling", Toast.LENGTH_SHORT).show();
+                            firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+                            s = messageList.get(firstitem);
+                            if (canigetDate(s)) {
+                                date = getDate(s);
+                                topnotemain.setText(getReadableDate(date));
+                            }
+                        } catch (Exception e) {
+
                         }
                         break;
                     case RecyclerView.SCROLL_STATE_SETTLING:
-                        firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
-                        s = messageList.get(firstitem);
-                        date = "Date not found";
-                        if (canigetDate(s)) {
-                            date = getDate(s);
-                            topnotemain.setText(getReadableDate(date));
-                        }
+                        try {
+                            firstitem = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+                            s = messageList.get(firstitem);
+                            date = "Date not found";
+                            if (canigetDate(s)) {
+                                date = getDate(s);
+                                topnotemain.setText(getReadableDate(date));
+                            }
+                        } catch (Exception e) {}
                         break;
                 }
             }
@@ -311,7 +356,6 @@ public class MainActivity extends AppCompatActivity {
         /*recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
 
         });*/
-
     }
 
     public boolean getNightMode()
@@ -338,8 +382,50 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String getReadableDate(String s) {
+        String f = selectedDateFormat;
+        String tempS = s;
+        s = s.trim();
+        if(f!=null) {
+            f = f.trim();
+            try {
+                int monthIndex;
+                int yearTemp;
+                String day, month, year;
+                List<String> dateValues = new ArrayList<>();
+                dateValues.add(s.substring(0, s.indexOf("/")));
+                s = s.substring(s.indexOf("/") + 1);
+                dateValues.add(s.substring(0, s.indexOf("/")));
+                dateValues.add(s.substring(s.indexOf("/") + 1));
 
-        String[] months = new String[] {"January","February","March","April","May","June","July","August","September","October","November","December"};
+                List<String> formatValues = new ArrayList<>();
+                formatValues.add(f.substring(0, f.indexOf("/")));
+                f = f.substring(f.indexOf("/") + 1);
+                formatValues.add(f.substring(0, f.indexOf("/")));
+                formatValues.add(f.substring(f.indexOf("/") + 1));
+
+                day = dateValues.get(formatValues.indexOf("day"));
+                monthIndex = Integer.parseInt((dateValues.get(formatValues.indexOf("month"))).trim());
+                month = months[monthIndex - 1];
+                yearTemp = Integer.parseInt((dateValues.get(formatValues.indexOf("year"))).trim());
+                if (yearTemp < 100)
+                    yearTemp += 2000;
+                year = yearTemp + "";
+
+                return day + " " + month + " " + year;
+            } catch (Exception e) {
+                return tempS;
+            }
+        } else {
+            try {
+                return getReadableDateOldChats(s);
+            } catch (Exception e) {
+                return s;
+            }
+        }
+    }
+
+    private String getReadableDateOldChats(String s) {
+
         int day = Integer.parseInt(s.substring(0,s.indexOf("/")));
         s = s.substring(s.indexOf("/")+1);
         int month = Integer.parseInt(s.substring(0,s.indexOf("/")));
@@ -370,7 +456,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void showInterstitialAd() {
+    public void loadInterstitialAd() {
         AdRequest adRequest = new AdRequest.Builder().build();
         InterstitialAd.load(MainActivity.this,"ca-app-pub-2813592783630195/9571135356", adRequest,
                 new InterstitialAdLoadCallback() {
@@ -420,13 +506,97 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    public void showInterstitialAd() {
+        AdRequest adRequest = new AdRequest.Builder().build();
+        InterstitialAd.load(MainActivity.this,"ca-app-pub-2813592783630195/9571135356", adRequest,
+                new InterstitialAdLoadCallback() {
+                    @Override
+                    public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
+                        // The mInterstitialAd reference will be null until
+                        // an ad is loaded.
+                        mInterstitialAd = interstitialAd;
+                        mInterstitialAd.show(MainActivity.this);
+                        mInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback() {
+                            @Override
+                            public void onAdClicked() {
+                                // Called when a click is recorded for an ad.
+                            }
+
+                            @Override
+                            public void onAdDismissedFullScreenContent() {
+                                // Called when ad is dismissed.
+                                // Set the ad reference to null so you don't show the ad a second time.
+                                //mInterstitialAd = loadInterstitialAd();
+                            }
+                            @Override
+                            public void onAdFailedToShowFullScreenContent(AdError adError) {
+                                // Called when ad fails to show.
+                                mInterstitialAd = null;
+                            }
+
+                            @Override
+                            public void onAdImpression() {
+                                // Called when an impression is recorded for an ad.
+                                //Toast.makeText(HomeActivity.this, "Ad got impression", Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onAdShowedFullScreenContent() {
+                                // Called when ad is shown.
+                                //Toast.makeText(HomeActivity.this, "Ad showed full screen content", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                        // Handle the error
+                        mInterstitialAd = null;
+                    }
+                });
+    }
+
     @SuppressLint("NotifyDataSetChanged")
     private void initRecyclerView() {
+
+        // exportChat layout views
+        TextView usernamepreviewexportchat,senderName,recieverName,exportChatToHtmlBtn;
+        Switch showSenderName,showRecieverName;
+        ImageView senderNameTick,chatNameTick,lightModeIcon,DarkModeIcon;
+        RadioButton lightModeRadioBtn,darkModeRadioBtn;
+        ConstraintLayout lightModeBg,darkModeBg,senderNameEditLayout,showSenderNameBg,showRecieverNameBg;
+        EditText senderNameEditText,chatNameEditText;
+
+        View v2 = findViewById(R.id.include2);
+        usernamepreviewexportchat = (TextView) v2.findViewById(R.id.textView);
+        usernamepreviewexportchat.setText(("Modda goku"));
+        senderName = findViewById(R.id.textView26);
+        recieverName = findViewById(R.id.textView30);
+        showSenderName = findViewById(R.id.switch2);
+        showRecieverName = findViewById(R.id.switch12);
+        senderNameTick = findViewById(R.id.imageView33);
+        chatNameTick = findViewById(R.id.imageView30);
+        lightModeIcon = findViewById(R.id.imageView31);
+        DarkModeIcon = findViewById(R.id.imageView32);
+        lightModeRadioBtn = findViewById(R.id.radioButton);
+        darkModeRadioBtn = findViewById(R.id.radioButton2);
+        lightModeBg = findViewById(R.id.constraintLayout14);
+        darkModeBg = findViewById(R.id.constraintLayout13);
+        senderNameEditLayout = findViewById(R.id.sendernamelayout);
+        showSenderNameBg = findViewById(R.id.constraintLayout12);
+        showRecieverNameBg = findViewById(R.id.constraintLayout11);
+        senderNameEditText = findViewById(R.id.editTextText3);
+        chatNameEditText = findViewById(R.id.editTextText);
+        exportChatToHtmlBtn  = findViewById(R.id.textView25);
+
+        exportChatLayout = findViewById(R.id.mainexportchatlayout);
+        exportChatCloseBtn  = findViewById(R.id.imageView28);
+
         recyclerView = findViewById(R.id.backg);
         linearLayoutManager = new LinearLayoutManager(MainActivity.this);
         linearLayoutManager.setOrientation(RecyclerView.VERTICAL);
         recyclerView.setLayoutManager(linearLayoutManager);
-        adapter = new Adapter(messageList,tablename,fname,sname,this,chatmenulayout,backbtn,edit,copy,delete,info,selectedcount,editmessagelayout,editmsgbackbtn,editmsgedittext,editmsgupdate,searchlayout,searchlayoutbackbtn,searchlayoutedittext,searchlayoutupbutton,searchlayoutdownbutton,linearLayoutManager);
+        adapter = new Adapter(messageList,tablename,fname,sname,myname,this,chatmenulayout,backbtn,edit,copy,delete,info,selectedcount,editmessagelayout,editmsgbackbtn,editmsgedittext,editmsgupdate,searchlayout,searchlayoutbackbtn,searchlayoutedittext,searchlayoutupbutton,searchlayoutdownbutton,linearLayoutManager,usernamepreviewexportchat,senderName,recieverName,showSenderName,showRecieverName,senderNameTick,chatNameTick,lightModeIcon,DarkModeIcon,lightModeRadioBtn,darkModeRadioBtn,lightModeBg,darkModeBg,senderNameEditLayout,senderNameEditText,chatNameEditText,exportChatLayout,exportChatCloseBtn,showSenderNameBg,showRecieverNameBg,exportChatToHtmlBtn,datesList);
         recyclerView.setAdapter(adapter);
         ((SimpleItemAnimator) Objects.requireNonNull(recyclerView.getItemAnimator())).setSupportsChangeAnimations(false);
         adapter.notifyDataSetChanged();
@@ -441,6 +611,8 @@ public class MainActivity extends AppCompatActivity {
         try { database.updatelastleftmessageindex(tablename,linearLayoutManager.findFirstCompletelyVisibleItemPosition()); } catch(Exception e) {};
         if(Adapter.count > 0 || Adapter.issearching) {
             backbtn.callOnClick();
+        } else if(exportChatLayout.getTranslationY()==0) {
+            exportChatCloseBtn.callOnClick();
         } else {
             super.onBackPressed();
         }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/viewcontact"
         android:title="View contact"></item>
@@ -14,8 +15,16 @@
         android:title="Search"></item>
 
     <item
+        android:id="@+id/exportchat"
+        android:title="Export Chat to Html"></item>
+
+    <item
         android:id="@+id/gotofirstmessage"
         android:title="Go To First Message"></item>
+
+    <item
+        android:id="@+id/fixdates"
+        android:title="Reformat Dates"></item>
 
     <item
         android:id="@+id/clearchat"

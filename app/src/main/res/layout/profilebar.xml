@@ -43,7 +43,6 @@
         android:layout_width="34dp"
         android:layout_height="34dp"
         android:layout_marginStart="30dp"
-        android:layout_marginLeft="30dp"
         app:cardCornerRadius="18dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -61,6 +60,21 @@
 
 
     </androidx.cardview.widget.CardView>
+
+    <ImageView
+        android:id="@+id/video_call"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginEnd="15dp"
+        android:background="@drawable/ripple"
+        android:clickable="true"
+        android:focusable="true"
+        android:longClickable="true"
+        android:padding="2.5dp"
+        app:layout_constraintBottom_toBottomOf="@+id/voice_call"
+        app:layout_constraintEnd_toStartOf="@+id/voice_call"
+        app:layout_constraintTop_toTopOf="@+id/voice_call"
+        app:srcCompat="@drawable/video_call" />
 
     <LinearLayout
         android:id="@+id/linearLayout2"
@@ -126,21 +140,5 @@
         app:layout_constraintEnd_toStartOf="@+id/three_dots"
         app:layout_constraintTop_toTopOf="@+id/three_dots"
         app:srcCompat="@drawable/voice_call" />
-
-    <ImageView
-        android:id="@+id/video_call"
-        android:layout_width="30dp"
-        android:layout_height="30dp"
-        android:layout_marginEnd="15dp"
-        android:layout_marginRight="15dp"
-        android:background="@drawable/ripple"
-        android:clickable="true"
-        android:focusable="true"
-        android:longClickable="true"
-        android:padding="2.5dp"
-        app:layout_constraintBottom_toBottomOf="@+id/voice_call"
-        app:layout_constraintEnd_toStartOf="@+id/voice_call"
-        app:layout_constraintTop_toTopOf="@+id/voice_call"
-        app:srcCompat="@drawable/video_call" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

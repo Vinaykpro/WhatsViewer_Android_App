@@ -34,7 +34,7 @@ public class MySqllite extends SQLiteOpenHelper {
         onCreate(sqLiteDatabase);
     }
 
-    public boolean addText(String name, String tablename, String firstname, String lastname, String sendername, int usercount, String lastseen, String lastmessage, String lastmessagetime, Uri imageuri, int messageindex, int blueticks) {
+    public boolean addText(String name, String tablename, String firstname, String lastname, String sendername, int usercount, String lastseen, String lastmessage, String lastmessagetime, String uri, int messageindex, int blueticks) {
         SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
 
         ContentValues contentValues = new ContentValues();
@@ -47,7 +47,7 @@ public class MySqllite extends SQLiteOpenHelper {
         contentValues.put("lastseen",lastseen);
         contentValues.put("lastmessage",lastmessage);
         contentValues.put("lastmessagetime",lastmessagetime);
-        contentValues.put("uri","noimage");
+        contentValues.put("uri",uri);
         contentValues.put("messageindex",messageindex);
         contentValues.put("blueticks",blueticks);
         long res = sqLiteDatabase.insertOrThrow("hometable",null,contentValues);
@@ -58,7 +58,7 @@ public class MySqllite extends SQLiteOpenHelper {
     public List<Contact> getAllText() {
         SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
         List<Contact> arrayList = new ArrayList<>();
-        String name,tablename,firstname,lastname,sendername,lastseen,lastmessage,lastmessagetime;
+        String name,tablename,firstname,lastname,sendername,lastseen,lastmessage,lastmessagetime,uri;
         int messageindex,usercount,blueticks;
 
         Cursor cursor = sqLiteDatabase.rawQuery("select * from "+"hometable",null);
@@ -99,6 +99,21 @@ public class MySqllite extends SQLiteOpenHelper {
         }
     }
 
+    public void addDatesToChat(String tablename,List<String> s) {
+        tablename = tablename+"dates";
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+
+        String table = "create table "+tablename+"(id INTEGER PRIMARY KEY, str text)";
+        sqLiteDatabase.execSQL(table);
+
+        //SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        for (String str : s) {
+            ContentValues contentValues = new ContentValues();
+            contentValues.put("str", str);
+            sqLiteDatabase.insert(tablename, null, contentValues);
+        }
+    }
+
     public List<String> getChatData(String tablename) {
         List<String> messageList = new ArrayList<>();
         if(isTableExists(tablename)) {
@@ -116,6 +131,24 @@ public class MySqllite extends SQLiteOpenHelper {
             return messageList;
     }
 
+    public List<String> getChatDates(String tablename) {
+        tablename = tablename+"dates";
+        List<String> datesList = new ArrayList<>();
+        if(isTableExists(tablename)) {
+            SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
+            Cursor cursor = sqLiteDatabase.rawQuery("select * from " + tablename, null);
+            cursor.moveToFirst();
+            String text = "";
+            while (!cursor.isAfterLast()) {
+                text = cursor.getString((cursor.getColumnIndex("str")));
+                datesList.add(text);
+                cursor.moveToNext();
+            }
+            cursor.close();
+        }
+        return datesList;
+    }
+
     public boolean isTableExists(String tableName) {
         SQLiteDatabase sqllitedatabse = this.getReadableDatabase();
         String query = "select DISTINCT tbl_name from sqlite_master where tbl_name = '"+tableName+"'";
@@ -127,6 +160,26 @@ public class MySqllite extends SQLiteOpenHelper {
             }
             return false;
         }
+    }
+
+    public boolean addExtraFieldsToChats(int exportUnlockStatus, String chatid, String extra2, String extra3, String extra4, int extra5, int extra6, int extra7) {
+        String tablename = "chatextras";
+        SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
+        if(!isTableExists(tablename)) {
+            String table = "create table "+tablename+"(id INTEGER PRIMARY KEY, exportunlock integer, chatid text, extra2 text, extra3 text, extra4 text, extra5 integer, extra6 integer, extra7 integer)";
+            sqLiteDatabase.execSQL(table);
+        }
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("exportunlock",exportUnlockStatus);
+        contentValues.put("chatid",chatid);
+        contentValues.put("extra2",extra2);
+        contentValues.put("extra3",extra3);
+        contentValues.put("extra4",extra4);
+        contentValues.put("extra5",extra5);
+        contentValues.put("extra6",extra6);
+        contentValues.put("extra7",extra7);
+        long res = sqLiteDatabase.insertOrThrow("hometable",null,contentValues);
+        return res != -1;
     }
 
     public void deletemessagefromtable(String tablename,List<String> messages) {
@@ -218,20 +271,18 @@ public class MySqllite extends SQLiteOpenHelper {
         sqLiteDatabase.execSQL("DELETE FROM hometable"+" WHERE tablename="+"'"+tablename+"'");
     }
 
-    public void updateProfilePicture(String tablename,Uri uri) {
-        String s = uri.toString();
+    public void updateProfilePicture(String tablename,String s) {
         SQLiteDatabase sqLiteDatabase = this.getWritableDatabase();
         sqLiteDatabase.execSQL("UPDATE hometable SET uri='"+s+"' WHERE tablename='"+tablename+"'");
     }
 
-    public Uri getProfilePicture(String tablename) {
+    public String getProfilePicture(String tablename) {
         SQLiteDatabase sqLiteDatabase = this.getReadableDatabase();
         Cursor cursor = sqLiteDatabase.rawQuery("select uri from hometable WHERE tablename = '"+tablename+"'", null);
         cursor.moveToFirst();
         String s = cursor.getString((cursor.getColumnIndex("uri")));
         cursor.close();
-        if(s.equals("noimage")) { return null; }
-        return Uri.parse(s);
+        return s;
     }
 
     public String getlastseen(String tablename) {

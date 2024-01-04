@@ -55,6 +55,7 @@ public class ChatsFragmentAdapter extends RecyclerView.Adapter {
         chatViewHolder.firstname = messageList.get(position).getFirstname();
         chatViewHolder.lastname = messageList.get(position).getLastname();
         chatViewHolder.name = messageList.get(position).getName();
+
         if(messageList.get(position).getBlueticks()==1) {
             chatViewHolder.blueticks.setVisibility(View.VISIBLE);
         } else {
