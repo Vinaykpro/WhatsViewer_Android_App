@@ -97,6 +97,7 @@
             android:id="@+id/textView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:singleLine="true"
             android:text="+91 87901 69829"
             android:textColor="#FFFFFF"
             android:textSize="18sp" />

@@ -26,6 +26,7 @@
         <item name="emojis_bg">#BFBFBF</item>
         <item name="profile_bg">#0b141b</item>
         <item name="profiletabs_bg">#121b22</item>
+        <item name="green_or_white">@color/white</item>
         <item name="android:windowContentTransitions" tools:ignore="NewApi">true</item>
     </style>
 

@@ -1,11 +1,13 @@
 package com.vinaykpro.whatsviewer;
 
 import static android.content.Context.MODE_PRIVATE;
+import static android.view.View.GONE;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentValues;
@@ -174,8 +176,13 @@ public class Adapter extends RecyclerView.Adapter {
 
     private RewardedAd mRewardAd;
 
+    ImageView watchadclosebtn;
+    TextView watchadbtn;
+    ConstraintLayout watchadlayout;
 
-    public Adapter(List<String> messageList,String tablename,String fname,String sname,String chatname,Context context,ConstraintLayout chatmenulayout, ImageView backbtn, ImageView edit, ImageView copy, ImageView delete, ImageView info,TextView selectedcount,ConstraintLayout editmessagelayout,ImageView editmsgbackbtn,EditText editmsgedittext,TextView editmsgupdate,ConstraintLayout searchlayout,ImageView searchlayoutbackbtn,EditText searchlayoutedittext,ImageView searchlayoutupbutton,ImageView searchlayoutdownbutton,LinearLayoutManager linearLayoutManager,TextView usernamepreviewexportchat,TextView senderName,TextView recieverName, Switch showSenderName,Switch showRecieverName, ImageView senderNameTick,ImageView chatNameTick,ImageView lightModeIcon,ImageView DarkModeIcon, RadioButton lightModeRadioBtn,RadioButton darkModeRadioBtn, ConstraintLayout lightModeBg,ConstraintLayout darkModeBg,ConstraintLayout senderNameEditLayout, EditText senderNameEditText,EditText chatNameEditText,ConstraintLayout exportChatLayout,ImageView exportChatCloseBtn, ConstraintLayout showSenderNameBg, ConstraintLayout showRecieverNameBg,TextView exportChatToHtmlBtn,List<String> datesList) {
+
+    @SuppressLint("ClickableViewAccessibility")
+    public Adapter(List<String> messageList, String tablename, String fname, String sname, String chatname, Context context, ConstraintLayout chatmenulayout, ImageView backbtn, ImageView edit, ImageView copy, ImageView delete, ImageView info, TextView selectedcount, ConstraintLayout editmessagelayout, ImageView editmsgbackbtn, EditText editmsgedittext, TextView editmsgupdate, ConstraintLayout searchlayout, ImageView searchlayoutbackbtn, EditText searchlayoutedittext, ImageView searchlayoutupbutton, ImageView searchlayoutdownbutton, LinearLayoutManager linearLayoutManager, TextView usernamepreviewexportchat, TextView senderName, TextView recieverName, Switch showSenderName, Switch showRecieverName, ImageView senderNameTick, ImageView chatNameTick, ImageView lightModeIcon, ImageView DarkModeIcon, RadioButton lightModeRadioBtn, RadioButton darkModeRadioBtn, ConstraintLayout lightModeBg, ConstraintLayout darkModeBg, ConstraintLayout senderNameEditLayout, EditText senderNameEditText, EditText chatNameEditText, ConstraintLayout exportChatLayout, ImageView exportChatCloseBtn, ConstraintLayout showSenderNameBg, ConstraintLayout showRecieverNameBg, TextView exportChatToHtmlBtn, List<String> datesList) {
         this.messageList = messageList;
         this.userName1 = fname;
         this.userName2= sname;
@@ -256,6 +263,10 @@ public class Adapter extends RecyclerView.Adapter {
         clipboard = (ClipboardManager) context.getSystemService(context.CLIPBOARD_SERVICE);
         colorList = new ArrayList<>();
 
+        this.watchadclosebtn = ((MainActivity)context).findViewById(R.id.watchadclosebtn);
+        this.watchadbtn = ((MainActivity)context).findViewById(R.id.watchadbtn);
+        this.watchadlayout = ((MainActivity)context).findViewById(R.id.loadinglayout);
+
         //groupmemebernames = new ArrayList<>();
         membercount = database.getusercount(tablename);
         if(membercount != 2) {
@@ -277,16 +288,17 @@ public class Adapter extends RecyclerView.Adapter {
                         userName1 = s;
                         notifyDataSetChanged();
                     }
-                     blacklayoutselectsender.setVisibility(View.GONE);
+                     blacklayoutselectsender.setVisibility(GONE);
                 }
                 @Override
                 public void onNothingSelected(AdapterView<?> adapterView) { }
             });
 
             blacklayoutselectsender.setOnTouchListener(new View.OnTouchListener() {
+                @SuppressLint("ClickableViewAccessibility")
                 @Override
                 public boolean onTouch(View view, MotionEvent motionEvent) {
-                    blacklayoutselectsender.setVisibility(View.GONE);
+                    blacklayoutselectsender.setVisibility(GONE);
                     return true;
                 }
             });
@@ -416,7 +428,7 @@ public class Adapter extends RecyclerView.Adapter {
                             params.startToStart = R.id.dtl6;
                             dateTick.setLayoutParams(params);
                         }
-                        otherFormatsView.setVisibility(View.GONE);
+                        otherFormatsView.setVisibility(GONE);
                         break;
                 }
             }
@@ -526,7 +538,7 @@ public class Adapter extends RecyclerView.Adapter {
                     j++;
                 }
             } else {
-                otherFormatsView.setVisibility(View.GONE);
+                otherFormatsView.setVisibility(GONE);
             }
 
         }
@@ -655,12 +667,22 @@ public class Adapter extends RecyclerView.Adapter {
                     @Override
                     public void onAnimationEnd(Animator animation) {
                         super.onAnimationEnd(animation);
-                        view.setVisibility(View.GONE);
+                        view.setVisibility(GONE);
                         view.animate().setListener(null);
                     }
                 });
             }
         });
+
+        watchadclosebtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                watchadlayout.setVisibility(View.GONE);
+                exportChatToHtmlBtn.setText("Export Chat to HTML");
+                expBtnLoading.setVisibility(GONE);
+            }
+        });
+
 
         threedots.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -710,7 +732,7 @@ public class Adapter extends RecyclerView.Adapter {
                         break;
                     case R.id.search:
                         issearching = true;
-                        maininputlayout.setVisibility(View.GONE);
+                        maininputlayout.setVisibility(GONE);
                         searchlayout.setVisibility(View.VISIBLE);
                         //Toast.makeText(context, "Search", Toast.LENGTH_SHORT).show();
                         return true;
@@ -769,8 +791,8 @@ public class Adapter extends RecyclerView.Adapter {
                     senderName.setVisibility(View.VISIBLE);
                     senderNameEditLayout.setVisibility(View.VISIBLE);
                 } else {
-                    senderName.setVisibility(View.GONE);
-                    senderNameEditLayout.setVisibility(View.GONE);
+                    senderName.setVisibility(GONE);
+                    senderNameEditLayout.setVisibility(GONE);
                 }
                 showSenderNameBool = !showSenderNameBool;
                 showSenderName.setChecked(showSenderNameBool);
@@ -785,7 +807,7 @@ public class Adapter extends RecyclerView.Adapter {
                 if(!showRecieverNameBool) {
                     recieverName.setVisibility(View.VISIBLE);
                 } else {
-                    recieverName.setVisibility(View.GONE);
+                    recieverName.setVisibility(GONE);
                 }
                 showRecieverNameBool = !showRecieverNameBool;
                 showRecieverName.setChecked(showRecieverNameBool);
@@ -802,7 +824,8 @@ public class Adapter extends RecyclerView.Adapter {
         chatNameTick.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                recieverName.setText(chatNameEditText.getText());
+                if(!isthisagroup)
+                { recieverName.setText(chatNameEditText.getText()); }
                 usernamepreviewexportchat.setText(chatNameEditText.getText());
             }
         });
@@ -848,9 +871,6 @@ public class Adapter extends RecyclerView.Adapter {
         exportChatToHtmlBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-
-
                 if(isChatUnlocked) {
                     Thread t = new Thread(new Runnable() {
                         @Override
@@ -862,7 +882,7 @@ public class Adapter extends RecyclerView.Adapter {
                     ((MainActivity) context).findViewById(R.id.exportingscreen).setVisibility(View.VISIBLE);
                     expLock.setVisibility(View.VISIBLE);
                     isChatUnlocked = false;
-                    exportChatToHtmlBtn.setText("Export Chat to HTML [Watch Ad]");
+                    exportChatToHtmlBtn.setText("Export Chat to HTML"); /*Export Chat to HTML [Watch Ad]*/
                 } else {
                     loadRewardAd();
                 }
@@ -1005,16 +1025,16 @@ public class Adapter extends RecyclerView.Adapter {
                     indexes.clear();
                     triggeredposition = -1;
                     searchedword = "";
-                    editmessagelayout.setVisibility(View.GONE);
+                    editmessagelayout.setVisibility(GONE);
                     hideThisViewByAlpha(chatmenulayout);
-                    searchlayout.setVisibility(View.GONE);
+                    searchlayout.setVisibility(GONE);
                 }
                 if(issearching) {
                     issearching = false;
                     triggeredposition = -1;
                     searchedIndexes.clear();
                     maininputlayout.setVisibility(View.VISIBLE);
-                    searchlayout.setVisibility(View.GONE);
+                    searchlayout.setVisibility(GONE);
                 }
             }
         });
@@ -1270,6 +1290,9 @@ public class Adapter extends RecyclerView.Adapter {
             view = layoutInflater.inflate(R.layout.note_middle, parent, false);
             return new NoteViewHolder(view);
         }
+
+
+
     }
 
     private void loadRewardAd() {
@@ -1281,38 +1304,57 @@ public class Adapter extends RecyclerView.Adapter {
                     @Override
                     public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
                         // Handle the error.
-                        exportChatToHtmlBtn.setText("Export Chat to HTML [Watch AD]");
-                        expBtnLoading.setVisibility(View.GONE);
+                        exportChatToHtmlBtn.setText("Export Chat to HTML"); /*Export Chat to HTML [Watch Ad]*/
+                        expBtnLoading.setVisibility(GONE);
                         Toast.makeText(context, "Failed to Load an Ad make sure you have an active internet connection and try again", Toast.LENGTH_SHORT).show();
                         mRewardAd = null;
+
+                        // remove these two lines :-( no revenue
+                        isChatUnlocked = true;
+                        exportChatToHtmlBtn.callOnClick();
                     }
 
                     @Override
                     public void onAdLoaded(@NonNull RewardedAd ad) {
                         mRewardAd = ad;
-                        mRewardAd.show(((MainActivity)context), new OnUserEarnedRewardListener() {
+                        watchadlayout.setVisibility(View.VISIBLE);
+                        exportChatToHtmlBtn.setText("Ad Ready");
+                        expBtnLoading.setVisibility(GONE);
+                        watchadbtn.setOnClickListener(new View.OnClickListener() {
                             @Override
-                            public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
-                                exportChatToHtmlBtn.setText("Export Chat to HTML");
-                                expBtnLoading.setVisibility(View.GONE);
-                                expLock.setVisibility(View.GONE);
-                                isChatUnlocked = true;
+                            public void onClick(View view) {
+                                mRewardAd.show(((MainActivity)context), new OnUserEarnedRewardListener() {
+                                    @Override
+                                    public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
+                                        exportChatToHtmlBtn.setText("Export Chat to HTML");
+                                        expBtnLoading.setVisibility(GONE);
+                                        expLock.setVisibility(GONE);
+                                        isChatUnlocked = true;
+                                    }
+                                });
                             }
                         });
+
                         mRewardAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                             @Override
                             public void onAdDismissedFullScreenContent() {
                                 super.onAdDismissedFullScreenContent();
+                                watchadlayout.setVisibility(GONE);
                                 exportChatToHtmlBtn.callOnClick();
+
                             }
 
                             @Override
                             public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
                                 super.onAdFailedToShowFullScreenContent(adError);
-                                exportChatToHtmlBtn.setText("Export Chat to HTML [Watch AD]");
-                                expBtnLoading.setVisibility(View.GONE);
+                                exportChatToHtmlBtn.setText("Export Chat to HTML"); /*Export Chat to HTML [Watch Ad]*/
+                                expBtnLoading.setVisibility(GONE);
                                 Toast.makeText(context, "Failed to Show Ad make sure you have an active internet connection and try again", Toast.LENGTH_SHORT).show();
                                 mRewardAd = null;
+
+                                // remove these two lines :-( no revenue
+                                isChatUnlocked = true;
+                                exportChatToHtmlBtn.callOnClick();
                             }
                         });
                     }
@@ -2126,7 +2168,7 @@ public class Adapter extends RecyclerView.Adapter {
 
     private static void shareFile(Context context, Uri fileUri, String mimeType) {
         exportChatCloseBtn.callOnClick();
-        ((MainActivity)context).findViewById(R.id.exportingscreen).setVisibility(View.GONE);
+        ((MainActivity)context).findViewById(R.id.exportingscreen).setVisibility(GONE);
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType(mimeType);
         shareIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
@@ -2271,7 +2313,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                     if (count > 1) {
                         editmode = false;
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
 
                     if (count == 0) {
@@ -2283,7 +2325,7 @@ public class Adapter extends RecyclerView.Adapter {
                             triggeredposition = -1;
                             searchedIndexes.clear();
                             maininputlayout.setVisibility(View.VISIBLE);
-                            searchlayout.setVisibility(View.GONE);
+                            searchlayout.setVisibility(GONE);
                         }
                         revealThisViewByAlpha(chatmenulayout);
                     }
@@ -2321,7 +2363,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                     if (count > 1) {
                         editmode = false;
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
 
                     if (count == 0) {
@@ -2333,10 +2375,10 @@ public class Adapter extends RecyclerView.Adapter {
                             triggeredposition = -1;
                             searchedIndexes.clear();
                             maininputlayout.setVisibility(View.VISIBLE);
-                            searchlayout.setVisibility(View.GONE);
+                            searchlayout.setVisibility(GONE);
                         }
                         revealThisViewByAlpha(chatmenulayout);
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
                     return true;
                 }
@@ -2354,7 +2396,7 @@ public class Adapter extends RecyclerView.Adapter {
                 recievername = getName(messageList.get(position));
                 recievedViewHolder.recievername.setTextColor(Color.parseColor(colorList.get(groupmemebernames.indexOf(recievername))));
             } else {
-                recievedViewHolder.recievername.setVisibility(View.GONE);
+                recievedViewHolder.recievername.setVisibility(GONE);
                 recievername = userName2;
             }
 
@@ -2364,7 +2406,7 @@ public class Adapter extends RecyclerView.Adapter {
                     recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
                     recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
                 } else {
-                    recievedViewHolder.recievername.setVisibility(View.GONE);
+                    recievedViewHolder.recievername.setVisibility(GONE);
                     params.setMargins(0, 0, 0, 0);
                     recievedViewHolder.fullbackgroundlayout.setLayoutParams(params);
                     recievedViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever_without_bubble);
@@ -2436,7 +2478,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                     if (count > 1) {
                         editmode = false;
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
 
                     if (count == 0) {
@@ -2448,10 +2490,10 @@ public class Adapter extends RecyclerView.Adapter {
                             triggeredposition = -1;
                             searchedIndexes.clear();
                             maininputlayout.setVisibility(View.VISIBLE);
-                            searchlayout.setVisibility(View.GONE);
+                            searchlayout.setVisibility(GONE);
                         }
                         revealThisViewByAlpha(chatmenulayout);
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
                 }
             });
@@ -2487,7 +2529,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                     if (count > 1) {
                         editmode = false;
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                     }
 
                     if (count == 0) {
@@ -2499,9 +2541,9 @@ public class Adapter extends RecyclerView.Adapter {
                             triggeredposition = -1;
                             searchedIndexes.clear();
                             maininputlayout.setVisibility(View.VISIBLE);
-                            searchlayout.setVisibility(View.GONE);
+                            searchlayout.setVisibility(GONE);
                         }
-                        editmessagelayout.setVisibility(View.GONE);
+                        editmessagelayout.setVisibility(GONE);
                         revealThisViewByAlpha(chatmenulayout);
                     }
                     return true;
@@ -2519,8 +2561,8 @@ public class Adapter extends RecyclerView.Adapter {
                 //String[] paths = {"storage/emulated/0/Download/song.mp3","storage/emulated/0/Download/Testimg.jpg","storage/emulated/0/Download/Crop2.jpg","storage/emulated/0/Download/Crop1.jpg","storage/emulated/0/Vinay/Crop3.jpg","storage/emulated/0/Download/aditya.mp4","storage/emulated/0/Download/Video.mp4"};
                 //sentViewHolder.mainimage.setImageURI(Uri.fromFile(new File(paths[f])));
                 //sentViewHolder.sentmessage.setText((position+""));
-                sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
-                sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+                sentMediaViewHolder.senderaudiolayout.setVisibility(GONE);
+                sentMediaViewHolder.documentlayout.setVisibility(GONE);
                 sentMediaViewHolder.imagecontainer.setVisibility(View.VISIBLE);
 
                     message = sentMediaViewHolder.sentmessage.getText().toString();
@@ -2569,9 +2611,9 @@ public class Adapter extends RecyclerView.Adapter {
                             calculatedHeight = maxheightinpx;
                             calculatedWidth = (int)(maxwidthinpx*0.7);
 
-                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(GONE);
 
                             sentMediaViewHolder.playbutton.setVisibility(View.VISIBLE);
                             sentMediaViewHolder.mainimage.setBackgroundResource(R.drawable.blur);
@@ -2603,10 +2645,10 @@ public class Adapter extends RecyclerView.Adapter {
                             int imageHeight = options.outHeight;
                             int imageWidth = options.outWidth;
 
-                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
-                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.documentlayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(GONE);
+                            sentMediaViewHolder.documentlayout.setVisibility(GONE);
                             ((SentMediaViewHolder) holder).imagecontainer.setVisibility(View.VISIBLE);
                             //sentMediaViewHolder.mainimage.setBackgroundColor(context.getResources().getColor(R.color.white));
                             sentMediaViewHolder.playbutton.setImageDrawable(AppCompatResources.getDrawable(context,R.drawable.ic_play));
@@ -2701,7 +2743,7 @@ public class Adapter extends RecyclerView.Adapter {
                             int imageHeight = options.outHeight;
                             int imageWidth = options.outWidth;
 
-                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(GONE);
                             //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
                             Glide.with(context).load(file).fitCenter().into(sentMediaViewHolder.mainimage);
                             String duration = "";
@@ -2785,11 +2827,11 @@ public class Adapter extends RecyclerView.Adapter {
 
                             calculatedHeight = sentMediaViewHolder.senderaudiolayout.getHeight();
                             calculatedWidth = maxwidthinpx;
-                            sentMediaViewHolder.sentmessage.setVisibility(View.GONE);
-                            sentMediaViewHolder.mainimage.setVisibility(View.GONE);
+                            sentMediaViewHolder.sentmessage.setVisibility(GONE);
+                            sentMediaViewHolder.mainimage.setVisibility(GONE);
                             sentMediaViewHolder.senderaudiolayout.setVisibility(View.VISIBLE);
-                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(GONE);
 
 
                             String audioduration = "0:00";
@@ -2891,11 +2933,11 @@ public class Adapter extends RecyclerView.Adapter {
 
 
                         } else {
-                            sentMediaViewHolder.svideotimelayout.setVisibility(View.GONE);
-                            sentMediaViewHolder.playbutton.setVisibility(View.GONE);
-                            sentMediaViewHolder.senderaudiolayout.setVisibility(View.GONE);
+                            sentMediaViewHolder.svideotimelayout.setVisibility(GONE);
+                            sentMediaViewHolder.playbutton.setVisibility(GONE);
+                            sentMediaViewHolder.senderaudiolayout.setVisibility(GONE);
                             sentMediaViewHolder.documentlayout.setVisibility(View.VISIBLE);
-                            sentMediaViewHolder.imagecontainer.setVisibility(View.GONE);
+                            sentMediaViewHolder.imagecontainer.setVisibility(GONE);
                             ImFlexboxLayout.LayoutParams params1 = new ImFlexboxLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                             sentMediaViewHolder.senderLayout.setLayoutParams(params1);
                             //isImage = isVideo = isAudio = false;
@@ -3333,7 +3375,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                             if (count > 1) {
                                 editmode = false;
-                                editmessagelayout.setVisibility(View.GONE);
+                                editmessagelayout.setVisibility(GONE);
                             }
 
                             if (count == 0) {
@@ -3345,7 +3387,7 @@ public class Adapter extends RecyclerView.Adapter {
                                     triggeredposition = -1;
                                     searchedIndexes.clear();
                                     maininputlayout.setVisibility(View.VISIBLE);
-                                    searchlayout.setVisibility(View.GONE);
+                                    searchlayout.setVisibility(GONE);
                                 }
                                 revealThisViewByAlpha(chatmenulayout);
                             }
@@ -3383,7 +3425,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                             if (count > 1) {
                                 editmode = false;
-                                editmessagelayout.setVisibility(View.GONE);
+                                editmessagelayout.setVisibility(GONE);
                             }
 
                             if (count == 0) {
@@ -3395,10 +3437,10 @@ public class Adapter extends RecyclerView.Adapter {
                                     triggeredposition = -1;
                                     searchedIndexes.clear();
                                     maininputlayout.setVisibility(View.VISIBLE);
-                                    searchlayout.setVisibility(View.GONE);
+                                    searchlayout.setVisibility(GONE);
                                 }
                                 revealThisViewByAlpha(chatmenulayout);
-                                editmessagelayout.setVisibility(View.GONE);
+                                editmessagelayout.setVisibility(GONE);
                             }
                             return true;
                         }
@@ -3416,7 +3458,7 @@ public class Adapter extends RecyclerView.Adapter {
                 recievername = getName(messageList.get(position));
                 recievedMediaViewHolder.recievername.setTextColor(Color.parseColor(colorList.get(groupmemebernames.indexOf(recievername))));
             } else {
-                recievedMediaViewHolder.recievername.setVisibility(View.GONE);
+                recievedMediaViewHolder.recievername.setVisibility(GONE);
                 recievername = userName2;
             }
 
@@ -3483,9 +3525,9 @@ public class Adapter extends RecyclerView.Adapter {
                         int imageWidth = options.outWidth;
 
                         if (isImage) {
-                            recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                            recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
-                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                            recievedMediaViewHolder.rvideotimelayout.setVisibility(GONE);
+                            recievedMediaViewHolder.playbutton.setVisibility(GONE);
+                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(GONE);
                             //Toast.makeText(context, path, Toast.LENGTH_SHORT).show();
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                 Glide.with(context).load(MediaImageViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedMediaViewHolder.mainimage);
@@ -3493,7 +3535,7 @@ public class Adapter extends RecyclerView.Adapter {
                                 Glide.with(context).load(file).fitCenter().into(recievedMediaViewHolder.mainimage);
                             }
                         } else if (isVideo) {
-                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
+                            recievedMediaViewHolder.recieverAudioLayout.setVisibility(GONE);
                             //Toast.makeText(context, fileName+" is a Video", Toast.LENGTH_SHORT).show();
                             Glide.with(context).load(MediaVideoViewerFragment.getImageContentUri(context, file)).fitCenter().into(recievedMediaViewHolder.mainimage);
                             String duration = "";
@@ -3568,11 +3610,11 @@ public class Adapter extends RecyclerView.Adapter {
                         //Toast.makeText(context, fileName+" is a Audio", Toast.LENGTH_SHORT).show();
                         calculatedHeight = recievedMediaViewHolder.recieverAudioLayout.getHeight();
                         calculatedWidth = maxwidthinpx;
-                        recievedMediaViewHolder.recievedmessage.setVisibility(View.GONE);
-                        recievedMediaViewHolder.mainimage.setVisibility(View.GONE);
+                        recievedMediaViewHolder.recievedmessage.setVisibility(GONE);
+                        recievedMediaViewHolder.mainimage.setVisibility(GONE);
                         recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.VISIBLE);
-                        recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                        recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
+                        recievedMediaViewHolder.rvideotimelayout.setVisibility(GONE);
+                        recievedMediaViewHolder.playbutton.setVisibility(GONE);
 
 
                         String audioduration = "0:00";
@@ -3672,10 +3714,10 @@ public class Adapter extends RecyclerView.Adapter {
 
                     } else {
                         //Toast.makeText(context, fileName+" just is a File", Toast.LENGTH_SHORT).show();
-                        recievedMediaViewHolder.rvideotimelayout.setVisibility(View.GONE);
-                        recievedMediaViewHolder.playbutton.setVisibility(View.GONE);
-                        recievedMediaViewHolder.recieverAudioLayout.setVisibility(View.GONE);
-                        recievedMediaViewHolder.mainimage.setVisibility(View.GONE);
+                        recievedMediaViewHolder.rvideotimelayout.setVisibility(GONE);
+                        recievedMediaViewHolder.playbutton.setVisibility(GONE);
+                        recievedMediaViewHolder.recieverAudioLayout.setVisibility(GONE);
+                        recievedMediaViewHolder.mainimage.setVisibility(GONE);
                         recievedMediaViewHolder.documentLayout.setVisibility(View.VISIBLE);
                         recievedMediaViewHolder.fileName.setText(fileName);
                         String extension = fileName.substring(fileName.lastIndexOf('.') + 1);
@@ -4080,7 +4122,7 @@ public class Adapter extends RecyclerView.Adapter {
                         recievedMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
                         recievedMediaViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever);
                     } else {
-                        recievedMediaViewHolder.recievername.setVisibility(View.GONE);
+                        recievedMediaViewHolder.recievername.setVisibility(GONE);
                         params.setMargins(0, 0, 0, 0);
                         recievedMediaViewHolder.fullbackgroundlayout.setLayoutParams(params);
                         recievedMediaViewHolder.recieverLayout.setBackgroundResource(R.drawable.bg_reciever_without_bubble);
@@ -4152,7 +4194,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                         if (count > 1) {
                             editmode = false;
-                            editmessagelayout.setVisibility(View.GONE);
+                            editmessagelayout.setVisibility(GONE);
                         }
 
                         if (count == 0) {
@@ -4164,10 +4206,10 @@ public class Adapter extends RecyclerView.Adapter {
                                 triggeredposition = -1;
                                 searchedIndexes.clear();
                                 maininputlayout.setVisibility(View.VISIBLE);
-                                searchlayout.setVisibility(View.GONE);
+                                searchlayout.setVisibility(GONE);
                             }
                             revealThisViewByAlpha(chatmenulayout);
-                            editmessagelayout.setVisibility(View.GONE);
+                            editmessagelayout.setVisibility(GONE);
                         }
                     }
                 });
@@ -4203,7 +4245,7 @@ public class Adapter extends RecyclerView.Adapter {
 
                         if (count > 1) {
                             editmode = false;
-                            editmessagelayout.setVisibility(View.GONE);
+                            editmessagelayout.setVisibility(GONE);
                         }
 
                         if (count == 0) {
@@ -4215,9 +4257,9 @@ public class Adapter extends RecyclerView.Adapter {
                                 triggeredposition = -1;
                                 searchedIndexes.clear();
                                 maininputlayout.setVisibility(View.VISIBLE);
-                                searchlayout.setVisibility(View.GONE);
+                                searchlayout.setVisibility(GONE);
                             }
-                            editmessagelayout.setVisibility(View.GONE);
+                            editmessagelayout.setVisibility(GONE);
                             revealThisViewByAlpha(chatmenulayout);
                         }
                         return true;
@@ -4332,7 +4374,7 @@ public class Adapter extends RecyclerView.Adapter {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 layout.animate().setListener(null);
-                layout.setVisibility(View.GONE);
+                layout.setVisibility(GONE);
             }
         });
     }

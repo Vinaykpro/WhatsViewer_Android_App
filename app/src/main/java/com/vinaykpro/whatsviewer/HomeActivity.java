@@ -5,10 +5,7 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -18,56 +15,46 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ContentResolver;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.ImageDecoder;
-import android.icu.util.Output;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.provider.MediaStore;
 import android.provider.OpenableColumns;
-import android.provider.Settings;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewOutlineProvider;
-import android.webkit.MimeTypeMap;
-import android.widget.EditText;
+import android.view.ViewTreeObserver;
+import android.view.WindowMetrics;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.ads.mediation.admob.AdMobAdapter;
 import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
 import com.google.android.gms.ads.OnUserEarnedRewardListener;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
 import com.google.android.gms.ads.rewarded.RewardItem;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
-import com.google.android.ump.ConsentDebugSettings;
 import com.google.android.ump.ConsentForm;
 import com.google.android.ump.ConsentInformation;
 import com.google.android.ump.ConsentRequestParameters;
@@ -75,11 +62,8 @@ import com.google.android.ump.UserMessagingPlatform;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -89,8 +73,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import de.hdodenhof.circleimageview.CircleImageView;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -166,6 +148,10 @@ public class HomeActivity extends AppCompatActivity {
 
     FragmentManager fm;
     AdView mAdView;
+
+    LinearLayout collapsiveAdContainer;
+
+    private boolean initialLayoutComplete = false;
     private InterstitialAd mInterstitialAd;
     private RewardedAd mRewardAd;
 
@@ -173,14 +159,26 @@ public class HomeActivity extends AppCompatActivity {
     private ConsentInformation consentInformation;
     private final AtomicBoolean isMobileAdsInitializeCalled = new AtomicBoolean(false);
 
+    // watch ad dialog
+    TextView importingchattxtview,watchadbtn;
+    ImageView watchadclosebtn;
+    ConstraintLayout watchAdLayout;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        //collapsiveAdContainer = findViewById(R.id.adViewContainer);
 
         //MobileAds.initialize(HomeActivity.this);
+
+        importingchattxtview = findViewById(R.id.importingchattxtview);
+        watchadbtn = findViewById(R.id.watchadbutton);
+        watchadclosebtn = findViewById(R.id.watchadclosebtn);
+        watchAdLayout = findViewById(R.id.watchadlayout);
 
         requestConsentForm();
 
@@ -290,14 +288,14 @@ public class HomeActivity extends AppCompatActivity {
             if(Intent.ACTION_VIEW.equals(action)) {
                 uri = intent.getData();
                 getIntent().removeExtra("key");
-                checkNopen(uri);
-                loadInterstitialAd();
+                //checkNopen(uri);
+                loadInterstitialAd(uri);
             } else if(Intent.ACTION_SEND.equals(action) && type!=null) {
                 if(type.equalsIgnoreCase("text/plain")) {
                     uri = (Uri) extras.get(Intent.EXTRA_STREAM);
                     getIntent().removeExtra("key");
-                    checkNopen(uri);
-                    loadInterstitialAd();
+                    //checkNopen(uri);
+                    loadInterstitialAd(uri);
                 } else {
                     uri = (Uri) extras.get(Intent.EXTRA_STREAM);
                     String s = extras.get(Intent.EXTRA_STREAM).toString();
@@ -306,8 +304,8 @@ public class HomeActivity extends AppCompatActivity {
                     }
                     if(s.equals("txt")) {
                         getIntent().removeExtra("key");
-                        checkNopen(uri);
-                        loadInterstitialAd();
+                        //checkNopen(uri);
+                        loadInterstitialAd(uri);
                     } else {
                         tablename = null;
                         Toast.makeText(HomeActivity.this, "Unsupported file format", Toast.LENGTH_SHORT).show();
@@ -410,14 +408,24 @@ public class HomeActivity extends AppCompatActivity {
                 }
                 if(s.equals("txt") || uriList.get(0).getPath().contains("export_chat")) {
                     getIntent().removeExtra("key");
-                    checkNopen(uriList.get(0));
-                    loadInterstitialAd();
+                    //checkNopen(uriList.get(0));
+                    loadInterstitialAd(uriList.get(0));
                 } else {
                     tablename = null;
                     Toast.makeText(HomeActivity.this, "Unsupported files", Toast.LENGTH_SHORT).show();
                 }
             }
         }
+
+        watchadclosebtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                watchAdLayout.setVisibility(View.GONE);
+                importingchattxtview.setText("Importing chat, please wait...");
+                loadinglayout.setVisibility(View.GONE);
+                Toast.makeText(HomeActivity.this, "The import process has been cancelled by you.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void requestConsentForm() {
@@ -473,10 +481,77 @@ public class HomeActivity extends AppCompatActivity {
 
         // TODO: Request an ad.
         // InterstitialAd.load(...);
-        mAdView = findViewById(R.id.adView);
+        mAdView = findViewById(R.id.adViewContainer);
         AdRequest adRequestbanner = new AdRequest.Builder().build();
         mAdView.loadAd(adRequestbanner);
 
+        //collapsiveAdContainer = findViewById(R.id.adViewContainer);
+        /*mAdView = new AdView(this);
+        collapsiveAdContainer.addView(mAdView);
+
+        // Since we're loading the banner based on the adContainerView size, we need
+        // to wait until this view is laid out before we can get the width.
+        collapsiveAdContainer.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        if (!initialLayoutComplete) {
+                            initialLayoutComplete = true;
+                            loadBanner();
+                        }
+                    }
+                });*/
+
+    }
+
+    private void loadBanner() {
+        mAdView.setAdUnitId("ca-app-pub-3940256099942544/6300978111");
+
+        AdSize adSize = getAdSize();
+        mAdView.setAdSize(adSize);
+
+        // Create an ad request. Check your logcat output for the hashed device ID
+        // to get test ads on a physical device, e.g.,
+        // "Use AdRequest.Builder.addTestDevice("ABCDE0123") to get test ads on this
+        // device."
+        Bundle extras = new Bundle();
+        extras.putString("collapsible","bottom");
+        AdRequest adRequest =
+                new AdRequest.Builder().addNetworkExtrasBundle(AdMobAdapter.class, extras).build();
+
+        // Start loading the ad in the background.
+        mAdView.loadAd(adRequest);
+    }
+
+    // Determine the screen width (less decorations) to use for the ad width.
+    private AdSize getAdSize() {
+        WindowMetrics windowMetrics = null;
+        Rect bounds = null;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            // For API level 30 and above
+            windowMetrics = getWindowManager().getCurrentWindowMetrics();
+            bounds = windowMetrics.getBounds();
+        } else {
+            // For API level below 30
+            Display display = getWindowManager().getDefaultDisplay();
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            display.getMetrics(displayMetrics);
+
+            bounds = new Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels);
+        }
+
+        float adWidthPixels = collapsiveAdContainer.getWidth();
+
+        // If the ad hasn't been laid out, default to the full screen width.
+        if (adWidthPixels == 0f) {
+            adWidthPixels = bounds.width();
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+        int adWidth = (int) (adWidthPixels / density);
+
+        return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, adWidth);
     }
 
     private String getFileName(Uri uri)
@@ -514,15 +589,17 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 }
                 Toast.makeText(HomeActivity.this, filename, Toast.LENGTH_SHORT).show();*/
-                checkNopen(uri);
-                loadInterstitialAd();
+                //checkNopen(uri);
+                loadInterstitialAd(uri);
             }
         }
     });
 
-    public void loadInterstitialAd() {
+    public void loadInterstitialAd(Uri u) {
         isinterstitialadfinished = false;
         AdRequest adRequest = new AdRequest.Builder().build();
+        loadinglayout.setVisibility(View.VISIBLE);
+        importingchattxtview.setText("Importing chat, please wait...");
         /*InterstitialAd.load(this,"ca-app-pub-2813592783630195/9571135356", adRequest,
                 new InterstitialAdLoadCallback() {
                     @Override
@@ -607,6 +684,10 @@ public class HomeActivity extends AppCompatActivity {
                     }
                 });*/
 
+        // ca-app-pub-3940256099942544/5224354917 Test ad unit ID
+
+        // ca-app-pub-2813592783630195/5974233711 My ad unit ID
+
         RewardedAd.load(this, "ca-app-pub-2813592783630195/5974233711",
                 adRequest, new RewardedAdLoadCallback() {
                     @Override
@@ -615,7 +696,7 @@ public class HomeActivity extends AppCompatActivity {
                         mRewardAd = null;
                         mInterstitialAd = null;
                         isinterstitialadfinished = true;
-                        if(ischataddedandreadytolaunch) {
+                        /*if(ischataddedandreadytolaunch) {
                             //ischataddedandreadytolaunch = false;
                             Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                             intent.putExtra("fname", firstName);
@@ -626,24 +707,41 @@ public class HomeActivity extends AppCompatActivity {
                             startActivity(intent);
                             firstName = "";
                             secondName = "";
-                        }
+                        }*/
+                        checkNopen(u);
+                        watchAdLayout.setVisibility(View.GONE);
+                        importingchattxtview.setText("Almost completed, please wait...");
                     }
 
                     @Override
                     public void onAdLoaded(@NonNull RewardedAd ad) {
                         mRewardAd = ad;
-                        mRewardAd.show(HomeActivity.this, new OnUserEarnedRewardListener() {
+                        watchAdLayout.setVisibility(View.VISIBLE);
+                        watchadbtn.setOnClickListener(new View.OnClickListener() {
                             @Override
-                            public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
+                            public void onClick(View view) {
+                                mRewardAd.show(HomeActivity.this, new OnUserEarnedRewardListener() {
+                                    @Override
+                                    public void onUserEarnedReward(@NonNull RewardItem rewardItem) {
+                                        isinterstitialadfinished = true;
+                                        watchAdLayout.setVisibility(View.GONE);
+                                        //checkNopen(u);
+                                        //importingchattxtview.setText("Almost completed, please wait...");
+
+                                    }
+                                });
                             }
                         });
+
+
+
                         mRewardAd.setFullScreenContentCallback(new FullScreenContentCallback() {
                             @Override
                             public void onAdDismissedFullScreenContent() {
                                 super.onAdDismissedFullScreenContent();
                                 mInterstitialAd = null;
                                 isinterstitialadfinished = true;
-                                if(ischataddedandreadytolaunch) {
+                                /*if(ischataddedandreadytolaunch) {
                                     //ischataddedandreadytolaunch = false;
                                     Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                                     intent.putExtra("fname", firstName);
@@ -654,7 +752,10 @@ public class HomeActivity extends AppCompatActivity {
                                     startActivity(intent);
                                     firstName = "";
                                     secondName = "";
-                                }
+                                }*/
+                                checkNopen(u);
+                                watchAdLayout.setVisibility(View.GONE);
+                                importingchattxtview.setText("Almost completed, please wait...");
                             }
 
                             @Override
@@ -662,7 +763,7 @@ public class HomeActivity extends AppCompatActivity {
                                 super.onAdFailedToShowFullScreenContent(adError);
                                 mInterstitialAd = null;
                                 isinterstitialadfinished = true;
-                                if(ischataddedandreadytolaunch) {
+                                /*if(ischataddedandreadytolaunch) {
                                     //ischataddedandreadytolaunch = false;
                                     Intent intent = new Intent(HomeActivity.this, MainActivity.class);
                                     intent.putExtra("fname", firstName);
@@ -673,13 +774,14 @@ public class HomeActivity extends AppCompatActivity {
                                     startActivity(intent);
                                     firstName = "";
                                     secondName = "";
-                                }
+                                }*/
+                                checkNopen(u);
+                                watchAdLayout.setVisibility(View.GONE);
+                                importingchattxtview.setText("Almost completed, please wait...");
                             }
                         });
                     }
                 });
-
-
     }
 
     public void checkNopen(Uri uri) {

@@ -2,84 +2,51 @@ package com.vinaykpro.whatsviewer;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.SimpleItemAnimator;
-import androidx.viewpager2.widget.ViewPager2;
 
-import java.io.FileNotFoundException;
-import java.nio.InvalidMarkException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import android.Manifest;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PorterDuff;
-import android.media.Image;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
-import android.os.Handler;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.animation.AnticipateOvershootInterpolator;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
-import android.widget.ResourceCursorAdapter;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.ads.AdError;
 import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.gms.ads.OnUserEarnedRewardListener;
-import com.google.android.gms.ads.initialization.InitializationStatus;
-import com.google.android.gms.ads.initialization.OnInitializationCompleteListener;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
-import com.google.android.gms.ads.rewarded.RewardItem;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
-import com.google.android.material.tabs.TabLayout;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.FileWriter;
 import java.util.List;
 import java.util.Objects;
-import java.util.Scanner;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -119,7 +86,9 @@ public class MainActivity extends AppCompatActivity {
 
     private InterstitialAd mInterstitialAd;
 
-    AdView mAdView;
+
+
+    //AdView mAdView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,15 +103,11 @@ public class MainActivity extends AppCompatActivity {
         Bundle extrasu = getIntent().getExtras();
         boolean noad = extrasu.getBoolean("noad",false);
 
-        MobileAds.initialize(MainActivity.this, new OnInitializationCompleteListener() {
-            @Override
-            public void onInitializationComplete(@NonNull InitializationStatus initializationStatus) {
-            }
-        });
+        //MobileAds.initialize(MainActivity.this);
 
-        mAdView = findViewById(R.id.adView2);
+        /*mAdView = findViewById(R.id.adView2);
         AdRequest adRequestbanner = new AdRequest.Builder().build();
-        mAdView.loadAd(adRequestbanner);
+        mAdView.loadAd(adRequestbanner);*/
 
 
         if(!noad) {
@@ -569,7 +534,6 @@ public class MainActivity extends AppCompatActivity {
 
         View v2 = findViewById(R.id.include2);
         usernamepreviewexportchat = (TextView) v2.findViewById(R.id.textView);
-        usernamepreviewexportchat.setText(("Modda goku"));
         senderName = findViewById(R.id.textView26);
         recieverName = findViewById(R.id.textView30);
         showSenderName = findViewById(R.id.switch2);
@@ -587,7 +551,7 @@ public class MainActivity extends AppCompatActivity {
         showRecieverNameBg = findViewById(R.id.constraintLayout11);
         senderNameEditText = findViewById(R.id.editTextText3);
         chatNameEditText = findViewById(R.id.editTextText);
-        exportChatToHtmlBtn  = findViewById(R.id.textView25);
+        exportChatToHtmlBtn  = findViewById(R.id.watchadbutton);
 
         exportChatLayout = findViewById(R.id.mainexportchatlayout);
         exportChatCloseBtn  = findViewById(R.id.imageView28);
