@@ -3,7 +3,7 @@
 ## Overview
 
 WhatsApp Chat Viewer is a feature-rich app designed to improve the readability and usability of exported WhatsApp chats. It transforms raw .txt files into a visually appealing user interface, offering users better control and a seamless chat viewing experience.
-
+https://play.google.com/store/apps/details?id=com.vinaykpro.whatsviewer
 ## Preview
 
 ![WAViewer: View Chats & Backup](https://github.com/Vinaykpro/WhatsViewer_Android_App/blob/main/waviewer_preview.gif)
