@@ -18,7 +18,7 @@ https://play.google.com/store/apps/details?id=com.vinaykpro.whatsviewer
 
 ## Success Metrics
 
-- **Google Play Downloads:** Over 93,000+ downloads and counting on Google Play Store.
+- **Google Play Downloads:** Over 125,000+ downloads and counting on Google Play Store.
 
 ## How to Use
 
